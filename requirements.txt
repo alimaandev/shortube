@@ -1,0 +1,13 @@
+groq
+edge-tts
+moviepy
+python-dotenv
+google-auth-oauthlib
+google-api-python-client
+click
+pydantic-settings
+feedparser
+requests
+pydub
+Pillow
+textstat

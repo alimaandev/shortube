@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+venv/
+.venv/
+
+# Assets / generated content
+shortube/assets/
+shortube/cache/
+
+# YouTube OAuth
+youtube_token.pkl
+client_secrets.json
+
+# Temporary test files
+test_*.jpg
+test_*.mp3
+test_*.mp4
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
