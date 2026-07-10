@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🎥 Shorts Automator</h1>
+  <h1>🎥 Shortube </h1>
   <p><strong>AI-Powered YouTube Shorts & Video Generation Studio</strong></p>
   <p>Discover trends → Write scripts → Generate voiceovers → Assemble videos → Upload — fully automated.</p>
 
