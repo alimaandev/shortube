@@ -1,6 +1,6 @@
 groq
 edge-tts
-moviepy
+ffmpeg-python
 python-dotenv
 google-auth-oauthlib
 google-api-python-client
@@ -10,4 +10,6 @@ feedparser
 requests
 pydub
 Pillow
-textstat
+fastapi
+uvicorn
+jinja2
