@@ -78,7 +78,8 @@ def _scene_clip(
     media_path: str | None, duration: float, index: int,
 ) -> Path:
     cfg = get_settings()
-    path = TEMP_DIR / f"scene_{index}.mp4"
+    media_hash = abs(hash(media_path or "none")) & 0xFFFFFFFF
+    path = TEMP_DIR / f"scene_{index}_{media_hash:x}.mp4"
     if path.exists():
         return path
 

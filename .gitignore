@@ -15,6 +15,9 @@ venv/
 shortube/assets/
 shortube/cache/
 
+# Output videos and generated assets
+output/
+
 # YouTube OAuth
 youtube_token.pkl
 client_secrets.json

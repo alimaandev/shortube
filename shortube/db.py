@@ -85,7 +85,7 @@ class Database:
     ) -> int:
         slug = title.lower().replace(" ", "_")[:80]
         now = _now()
-        cursor = self._conn.execute("""
+        self._conn.execute("""
             INSERT INTO topics (slug, title, niche, source, score, discovered_at, status)
             VALUES (?, ?, ?, ?, ?, ?, 'pending')
             ON CONFLICT(slug) DO UPDATE SET
@@ -93,8 +93,6 @@ class Database:
                 score = MAX(topics.score, excluded.score)
         """, (slug, title, niche, source, score, now))
         self._conn.commit()
-        if cursor.lastrowid:
-            return cursor.lastrowid
         row = self._conn.execute(
             "SELECT id FROM topics WHERE slug = ?", (slug,)
         ).fetchone()
