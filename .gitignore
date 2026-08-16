@@ -37,3 +37,13 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Node.js
+node_modules/
+remotion/node_modules/
+web/node_modules/
+remotion/dist/
+web/dist/
+remotion/out/
+remotion/build/
+remotion/public/render/

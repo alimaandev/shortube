@@ -143,11 +143,12 @@ def generate_thumbnail(
     output_path: str,
     subtitle: str = "",
 ) -> str:
+    cfg = get_settings()
     width, height = 1280, 720
     img = Image.new("RGB", (width, height), (10, 10, 10))
     draw = ImageDraw.Draw(img)
 
-    bg_path = Path("assets/thumbnail_bg.png")
+    bg_path = cfg.base_dir / "assets" / "thumbnail_bg.png"
     if bg_path.exists():
         try:
             bg = Image.open(bg_path).resize((width, height))

@@ -75,7 +75,22 @@ class Database:
             CREATE INDEX IF NOT EXISTS idx_videos_topic_id ON videos(topic_id);
             CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status);
         """)
+        self._migrate()
         self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Add columns missing from databases created by older versions."""
+        columns = {
+            col["name"]
+            for col in self._conn.execute("PRAGMA table_info(videos)").fetchall()
+        }
+        additions: dict[str, str] = {
+            "storyboard_json": "TEXT",
+            "music_path": "TEXT",
+        }
+        for name, decl in additions.items():
+            if name not in columns:
+                self._conn.execute(f"ALTER TABLE videos ADD COLUMN {name} {decl}")
 
     # ── Topics ────────────────────────────────────────────────────────
 
@@ -158,7 +173,9 @@ class Database:
 
     def get_video(self, video_id: int) -> dict | None:
         row = self._conn.execute(
-            "SELECT * FROM videos WHERE id = ?", (video_id,)
+            "SELECT v.*, t.title AS topic_title FROM videos v "
+            "LEFT JOIN topics t ON v.topic_id = t.id "
+            "WHERE v.id = ?", (video_id,)
         ).fetchone()
         return dict(row) if row else None
 
@@ -172,6 +189,15 @@ class Database:
         ]
 
     # ── Jobs ──────────────────────────────────────────────────────────
+
+    def get_job(self, job_id: int) -> dict | None:
+        row = self._conn.execute(
+            "SELECT j.*, t.title as topic_title FROM jobs j "
+            "JOIN videos v ON j.video_id = v.id "
+            "JOIN topics t ON v.topic_id = t.id "
+            "WHERE j.id = ?", (job_id,)
+        ).fetchone()
+        return dict(row) if row else None
 
     def create_job(self, video_id: int, job_type: str) -> int:
         now = _now()

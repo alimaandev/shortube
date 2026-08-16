@@ -133,6 +133,7 @@ class OpenRouterProvider:
         self._client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=api_key,
+            timeout=60,
         )
         self._model = model
 
@@ -189,7 +190,7 @@ class OllamaProvider:
             raise LLMError("openai package not installed. Run: pip install openai")
         from shortube.config import get_settings
         base_url = get_settings().ollama_base_url.rstrip("/") + "/v1"
-        self._client = OpenAI(base_url=base_url, api_key="ollama")
+        self._client = OpenAI(base_url=base_url, api_key="ollama", timeout=30)
         self._model = model
 
     @retry(max_attempts=3)

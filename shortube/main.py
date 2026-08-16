@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 
 import click
 
@@ -9,6 +10,12 @@ from shortube.db import Database
 from shortube.discover import discover
 from shortube.pipeline import run_pipeline
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+    stream=sys.stderr,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -19,15 +26,15 @@ def _run_pipeline(
     dry_run: bool = False,
     video_id: int | None = None,
 ) -> dict[str, str]:
-    click.echo(f"Pipeline starting for: {topic[:60]}...")
+    logger.info("Pipeline starting for: %s...", topic[:60])
     result = run_pipeline(
         topic, privacy=privacy, channel_id=channel,
         dry_run=dry_run, video_id=video_id,
     )
     if "url" in result:
-        click.echo(f"Done — {result['url']}")
+        logger.info("Done — %s", result["url"])
     else:
-        click.echo("Pipeline complete.")
+        logger.info("Pipeline complete.")
     return result
 
 
@@ -64,9 +71,8 @@ def show_trends(niche, count):
             f"{idea['title'][:80]}"
         )
     click.echo(f"\n{len(ideas)} topics found")
-    click.echo("Generate:  python -m shortube.main generate -t \"Title\"")
-    click.echo("Auto:      python -m shortube.main auto")
-    click.echo("Desktop:   python -m shortube.main desktop")
+    logger.info("Generate:  python -m shortube.main generate -t \"Title\"")
+    logger.info("Auto:      python -m shortube.main auto")
 
 
 @cli.command()
@@ -97,7 +103,7 @@ def auto(niche, dry_run, public, channel):
     for idea in ideas:
         if not db.is_topic_used(idea.title):
             topic = idea.title
-            click.echo(f"Auto-selected: {topic}")
+            logger.info("Auto-selected: %s", topic)
             tid = db.add_topic(topic, niche=niche_val, source=idea.source, score=idea.score)
             privacy = "public" if public else "private"
             vid = db.create_video(tid, privacy=privacy)
@@ -105,7 +111,7 @@ def auto(niche, dry_run, public, channel):
                 _run_pipeline(topic, privacy, channel, dry_run, video_id=vid)
                 db.mark_topic_used(topic)
             except Exception as e:
-                click.echo(f"Pipeline failed: {e}", err=True)
+                logger.error("Pipeline failed: %s", e)
             return
 
     click.echo("No undiscovered topics found.")
@@ -134,14 +140,10 @@ def set_channel(channel_id):
         lines.append(f"UPLOAD_CHANNEL_ID={channel_id}")
 
     env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    from shortube.config import reset_settings
+    reset_settings()
     click.echo(f"Channel set to: {channel_id}")
-
-
-@cli.command()
-def desktop():
-    """Start the desktop UI."""
-    from shortube.desktop import run
-    run()
 
 
 if __name__ == "__main__":

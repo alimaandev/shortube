@@ -22,7 +22,8 @@ class Settings(BaseSettings):
 
     youtube_client_secrets: str = "client_secrets.json"
     youtube_scopes: list[str] = [
-        "https://www.googleapis.com/auth/youtube.upload"
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube.readonly",
     ]
 
     niche: str = "general_facts"
@@ -34,14 +35,17 @@ class Settings(BaseSettings):
     video_width: int = 1080
     video_height: int = 1920
     video_fps: int = 30
-    transition_duration: float = 0.3
     bumper_duration: float = 1.5
+    transition_duration: float = 0.3
+    template: str = ""
 
     background_music_path: str = ""
     music_volume: float = 15.0
     duck_threshold: float = 6.0
+    sfx_enabled: bool = True
+    sfx_dir: str = "resources/sfx"
 
-    caption_font: str = "C:/Windows/Fonts/arial.ttf"
+    caption_font: str = ""
     caption_font_size: int = 48
     caption_font_color: str = "white"
     caption_stroke_color: str = "black"
@@ -62,6 +66,21 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 800
     ollama_base_url: str = "http://localhost:11434"
 
+    image_provider: str = "auto"
+    image_provider_fallback: bool = True
+    media_prefer_videos: bool = True
+
+    use_rq: bool = False
+    redis_url: str = "redis://localhost:6379/0"
+
+    remotion_project_dir: str = "remotion"
+    remotion_concurrency: int = 0
+    web_host: str = "0.0.0.0"
+    web_port: int = 8000
+    web_reload: bool = False
+    web_server: str = "hypercorn"
+    web_token: str = ""
+
 
 _settings: Settings | None = None
 
@@ -71,3 +90,9 @@ def get_settings() -> Settings:
     if _settings is None:
         _settings = Settings()
     return _settings
+
+
+def reset_settings() -> None:
+    """Drop the cached settings so the next get_settings() re-reads .env."""
+    global _settings
+    _settings = None

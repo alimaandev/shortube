@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 
 import edge_tts
+from pydub import AudioSegment
 
 from shortube.config import get_settings
 
@@ -50,6 +52,14 @@ def _verify_audio_file(path: str) -> None:
     if size == 0:
         raise VoiceError(f"Voiceover file is empty: {path}")
     logger.debug("Audio file verified: %s (%d bytes)", path, size)
+
+
+def _probe_duration(path: str) -> float:
+    try:
+        audio = AudioSegment.from_file(path)
+        return audio.duration_seconds
+    except Exception as exc:
+        raise VoiceError(f"Failed to read voiceover duration: {exc}") from exc
 
 
 async def _generate_with_timestamps(
@@ -117,6 +127,7 @@ def generate_voiceover(
     points: list[str],
     cta: str,
     output_path: str,
+    max_duration: float | None = None,
 ) -> list[dict]:
     """Generate a voiceover audio file and word-level timestamps.
 
@@ -125,6 +136,9 @@ def generate_voiceover(
         points: List of bullet-point content sentences.
         cta: Call-to-action closing sentence.
         output_path: Path to write the output audio file (e.g. .mp3).
+        max_duration: Hard cap in seconds. If the generated audio exceeds it,
+            trailing points are dropped and the audio is regenerated
+            (up to 2 retries) so Shorts never exceed the 60s limit.
 
     Returns:
         List of timestamp dicts with keys: word, start, end.
@@ -132,18 +146,62 @@ def generate_voiceover(
     Raises:
         VoiceError: If generation fails or output file is invalid.
     """
-    text = build_text(hook, points, cta)
     ts_path = str(Path(output_path).with_suffix(".timestamps.json"))
+    tmp_audio = f"{output_path}.v1.tmp.mp3"
+    tmp_ts = f"{ts_path}.v1.tmp"
 
-    logger.debug("Generating voiceover for text (%d chars)", len(text))
+    def _generate(points_used: list[str], tag: str) -> tuple[list[dict], float]:
+        nonlocal tmp_audio, tmp_ts
+        tmp_audio = f"{output_path}.{tag}.tmp.mp3"
+        tmp_ts = f"{ts_path}.{tag}.tmp"
+        text = build_text(hook, points_used, cta)
+        logger.debug("Generating voiceover for text (%d chars)", len(text))
+        try:
+            timestamps = _run_async(
+                _generate_with_timestamps(text, tmp_audio, tmp_ts)
+            )
+        except Exception as exc:
+            raise VoiceError(f"Voiceover generation failed: {exc}") from exc
+        _verify_audio_file(tmp_audio)
+        duration = _probe_duration(tmp_audio)
+        logger.info(
+            "Voiceover draft (%s): %.2fs with %d words",
+            tag, duration, len(timestamps),
+        )
+        return timestamps, duration
 
     try:
-        timestamps = _run_async(
-            _generate_with_timestamps(text, output_path, ts_path)
-        )
-    except Exception as exc:
-        raise VoiceError(f"Voiceover generation failed: {exc}") from exc
+        timestamps, duration = _generate(points, "v1")
+        for attempt in range(2):
+            if max_duration is None or duration <= max_duration or not points:
+                break
+            logger.warning(
+                "Voiceover %.2fs exceeds %.2fs cap — dropping last point",
+                duration, max_duration,
+            )
+            points = points[:-1]
+            timestamps, duration = _generate(points, f"v{attempt + 2}")
+
+        if max_duration is not None and duration > max_duration:
+            raise VoiceError(
+                "Voiceover still %.2fs after trimming all points "
+                "(cap %.2fs). Shorten the hook/CTA or raise VOICE_SPEED."
+            )
+
+        # Atomic swap so a failed run never destroys the last good files.
+        # The real files are only replaced after a fully valid generation.
+        os.replace(tmp_audio, output_path)
+        os.replace(tmp_ts, ts_path)
+    except Exception:
+        # Clean up only the temp drafts; any previously existing final
+        # files are left untouched so retries never lose good audio.
+        for stale in (tmp_audio, tmp_ts):
+            try:
+                Path(stale).unlink()
+            except OSError:
+                pass
+        raise
 
     _verify_audio_file(output_path)
-    logger.info("Voiceover saved to: %s", output_path)
+    logger.info("Voiceover saved to: %s (%.2fs)", output_path, duration)
     return timestamps
