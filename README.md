@@ -1,77 +1,69 @@
 # Shortube
 
-AI-Powered YouTube Shorts & Video Generation Studio
+AI-Powered YouTube Shorts & Video Generation Studio — desktop app.
 
-Discover trends -> Write scripts -> Generate voiceovers -> Assemble videos (via Remotion) -> Upload -- fully automated.
+Discover trends -> Write scripts -> Generate voiceovers -> Assemble videos (via Remotion) -> Upload. Fully automated, powered by a native **PyQt6** desktop app.
 
 ## Features
 
-### Script Generation
-- **LLM-powered scripts** -- hook, body points, CTA, keywords, title, and tags generated in a single prompt
-- **Retry with error recovery** -- malformed LLM output is detected and automatically retried (up to 3 times)
-- **Multi-provider LLM support** -- Groq, OpenRouter, or Ollama (local, no API key needed)
+### Desktop App (PyQt6)
+- **Dashboard** — generate by topic or one-click Auto mode, live progress bar with stage-by-stage log, cancel any running job, queued jobs
+- **Trends** — refresh trending topics in your niche (LLM-refined), click to generate
+- **Videos** — gallery with thumbnail previews, open the local file or its YouTube link, retry failed videos (resumes from cache)
+- **Settings** — tabbed configuration: LLM, voice, video & quality, upload, advanced. Includes a "Test connection" button and a YouTube channel picker
+- **Schedule** — automatic generation on an interval with a daily limit (survives app restarts)
+- **Analytics** — views/likes/comments for your uploaded videos
+- **First-run setup wizard** — pick your LLM provider, connect YouTube, choose a template
+- **Startup dependency check** — friendly warnings for missing Node.js/Remotion/ffmpeg
+- **Quality presets** — Fast / Standard / Pro control fps, CRF, render concurrency and audio bitrate
 
-### Trend Discovery Engine
-Scans 3 sources for trending content in your niche:
-- Hacker News (Algolia API)
-- RSS Feeds (NYT, BBC, The Verge, Wired, Ars Technica)
-- YouTube Search (YouTube Data API)
+### LLM Providers
+- **Groq** (default), **OpenRouter**, or **Ollama** (local, free, no API key) — all configurable from the app
+- Scripts pass a strict validation gate: hook/points/CTA length, keyword density ≥ 60%, spoken duration ≤ 55s, duplicate and junk detection — with up to 3 automatic retries
+
+### Trend Discovery
+- Hacker News (Algolia API), RSS feeds (NYT, BBC, The Verge, Wired, Ars Technica), YouTube Search (Data API)
+- LLM refinement converts headlines into Shorts-optimized topics
 
 ### Video Assembly (Remotion)
-- **Word-synced captions** -- overlaid via Remotion components, timed to TTS word boundaries
-- **Background music** -- pydub mixing with volume ducking during speech
-- **Ken Burns effect** -- slow zoom on static images via Remotion CSS transforms
-- **AI-generated scene images** -- Pollinations.ai (free, no API key), Flux model, 1080x1920
-- **Intro/outro bumpers** -- animated title and CTA cards with fade transitions
+- Word-synced karaoke captions timed to TTS word boundaries
+- Config-driven visual templates (`templates/*.json`): colors, transitions (zoomBlur/fade/slide/wipe), Ken Burns, caption style
+- Intro/outro bumpers with progress ring, whoosh/pop/riser sound effects, background music with ducking
+- Loudness normalized to YouTube's -14 LUFS
+- YouTube Shorts 60s cap enforced at script and voiceover level
 
 ### YouTube Upload & SEO
-- OAuth 2.0 -- authenticated upload with token persistence
-- SEO-optimized descriptions -- hook + bullet points + hashtags
-- Thumbnail generation -- branded title cards via Pillow
-- Scheduled publishing -- publishAt ISO 8601 support
-- Channel selection -- upload to specific YouTube channels
+- OAuth 2.0 with token persistence (browser flow)
+- SEO descriptions (hook + bullet points + hashtags), branded thumbnail generation, scheduled publishing, playlist assignment, multi-channel selection
 
-### Web UI (React + FastAPI)
-- **Dashboard** -- Generate by topic, Auto-scan, live job/video tables
-- **Topics** -- Trend discovery results with status tracking
-- **Videos** -- Generated video gallery with download + YouTube links
-- **Settings** -- LLM, voice, video, upload settings form
-
-### CLI (Click)
-- `python -m shortube.main` -- show trends by default
-- `python -m shortube.main generate -t "topic"` -- full pipeline
-- `python -m shortube.main auto` -- auto-discover, generate, upload
-- `python -m shortube.main set-channel UC_id` -- set upload channel
+### CLI (power users)
+- `python -m shortube.main` — show trends
+- `python -m shortube.main generate -t "topic"` — full pipeline
+- `python -m shortube.main auto` — auto-discover, generate, upload
 
 ## Quick Start
 
 ### Prerequisites
-```bash
-# Python 3.11+
-# Node.js 18+ (for Remotion rendering)
-```
+- Python 3.11+
+- Node.js 18+ (Remotion rendering)
+- ffmpeg on PATH (recommended, for loudness normalization)
 
 ### Installation
 ```bash
-git clone <repo-url>
-cd shortube
-
-# Python dependencies
 pip install -r requirements.txt
-
-# Remotion project
 cd remotion
 npm install
-cd ..
-
-# Web frontend
-cd web
-npm install
-cd ..
 ```
 
-### Configuration
-Create a `.env` file in the project root:
+### Run
+```bash
+python -m shortube.desktop
+```
+
+On first launch a wizard guides you through the LLM provider, visual template, quality preset, and YouTube connection. Everything else is configurable in Settings.
+
+### Configuration (.env, optional)
+Most settings are managed from the app. For scripting or defaults:
 
 ```env
 GROQ_API_KEY=your_groq_api_key
@@ -81,97 +73,78 @@ OPENROUTER_API_KEY=your_openrouter_key
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 
-# YouTube upload (required for upload)
 YOUTUBE_CLIENT_SECRETS=client_secrets.json
 UPLOAD_CHANNEL_ID=your_channel_id
-
-# Optional
 NICHE=general_facts
-BACKGROUND_MUSIC_PATH=assets/music/loop.mp3
-VOICE_NAME=en-US-AriaNeural
-
-# Remotion project path (relative or absolute)
-REMOTION_PROJECT_DIR=remotion
+QUALITY=standard
 ```
 
-### Usage
-```bash
-# Start the web UI
-hypercorn shortube.web:app --reload --bind 0.0.0.0:8000
+## Quality Presets
 
-# Or use CLI
-python -m shortube.main generate -t "Amazing facts about the universe"
-```
+| Preset | fps | Concurrency | CRF | Audio bitrate |
+|--------|-----|-------------|-----|---------------|
+| fast | 24 | 2 | 22 | 160k |
+| standard | 30 | auto | 18 | 192k |
+| pro | 30 | cores/2 | 14 | 256k |
 
 ## Architecture
 
 ```
 shortube/
-├── main.py              # CLI entry point (Click commands)
-├── pipeline.py          # 4-stage orchestrator
-├── script.py            # LLM script generation
-├── voice.py             # edge-tts voiceover with timestamps
-├── storyboard.py        # Scene builder + Pollinations images
-├── assemble.py          # Remotion video assembly (bridge)
-├── remotion_bridge.py   # Python-to-Remotion CLI integration
-├── web.py               # FastAPI web server + REST API
-├── upload.py            # YouTube Data API v3 upload
-├── discover.py          # Trend discovery engine
-├── llm.py               # LLM abstraction layer
-├── config.py            # Pydantic settings (.env)
-├── db.py                # SQLite database
-├── types.py             # Data classes
-└── __init__.py
+├── desktop/            # PyQt6 desktop app
+│   ├── app.py          # Entry point (python -m shortube.desktop)
+│   ├── main_window.py  # Sidebar navigation + job manager wiring
+│   ├── workers.py      # Background job thread, signals, cancel support
+│   ├── setup_wizard.py # First-run configuration wizard
+│   ├── theme.py        # Dark theme, template-aware accent color
+│   └── pages/          # dashboard, trends, videos, settings, schedule, analytics
+├── main.py             # CLI entry point (Click commands)
+├── pipeline.py         # 5-stage orchestrator (script/voice/storyboard/assemble/upload)
+├── script.py           # LLM script generation with validation + retries
+├── voice.py            # edge-tts voiceover with word timestamps
+├── storyboard.py       # Scene builder + media providers (Pexels/Pixabay/Pollinations)
+├── assemble.py         # Remotion assembly + loudness normalization
+├── remotion_bridge.py  # Python-to-Remotion CLI integration
+├── quality.py          # Fast/Standard/Pro render presets
+├── template_loader.py  # Visual template loading (templates/*.json)
+├── scheduler.py        # Automatic generation (APScheduler, persisted daily limit)
+├── upload.py           # YouTube Data API v3 upload + thumbnails
+├── analytics.py        # Video statistics
+├── discover.py         # Trend discovery engine
+├── llm.py              # LLM abstraction (Groq/OpenRouter/Ollama)
+├── settings_env.py     # .env persistence for the settings UI
+├── config.py           # Pydantic settings (.env)
+├── db.py               # SQLite database
+└── types.py            # Data classes
 
 remotion/
-├── package.json
-├── src/
-│   ├── Root.tsx              # Composition registration
-│   ├── ShortubeVideo.tsx     # Main composition
-│   ├── IntroBumper.tsx       # Title card animation
-│   ├── SceneClip.tsx         # Image + Ken Burns zoom
-│   ├── OutroBumper.tsx       # CTA card animation
-│   └── Captions.tsx          # Word-synced subtitle overlay
-
-web/
-├── package.json
-├── src/
-│   ├── App.tsx               # Router + layout
-│   ├── pages/
-│   │   ├── Dashboard.tsx     # Generate, trends, jobs, videos
-│   │   ├── Topics.tsx        # Topic listing
-│   │   ├── Videos.tsx        # Video gallery
-│   │   └── Settings.tsx      # Settings form
-│   └── api/client.ts         # FastAPI client
+└── src/                # Remotion components: ShortubeVideo, Captions, SceneClip,
+                        # IntroBumper, OutroBumper, Transitions, SoundEffects,
+                        # template.tsx, types.ts
+templates/
+├── premium.json        # Premium Bold (dark, zoomBlur, green accent)
+└── clean.json          # Clean Minimal (light, slide transitions, blue accent)
 ```
 
 ### Pipeline Flow
 ```
-Topic -> Script (LLM) -> Voiceover (edge-tts) -> Storyboard (Pollinations images)
-     -> Assembly (Remotion: bumpers + zoompan + music + captions)
+Topic -> Script (LLM, validated) -> Voiceover (edge-tts + word timestamps)
+     -> Storyboard (media search / AI images)
+     -> Assembly (Remotion: templates, captions, SFX, music, bumpers; loudnorm)
      -> Thumbnail (Pillow) -> YouTube Upload (OAuth 2.0)
 ```
 
 ## Development
 
 ```bash
-# Terminal 1: Python API
-hypercorn shortube.web:app --reload --bind 0.0.0.0:8000
+# Run the desktop app
+python -m shortube.desktop
 
-# Terminal 2: React dev server
-cd web && npm run dev
-
-# Terminal 3: Remotion preview (optional)
+# Remotion preview (optional)
 cd remotion && npx remotion studio
-```
 
-### Production Build
-```bash
-# Build React frontend
-cd web && npm run build
-
-# Run FastAPI (serves built React app)
-hypercorn shortube.web:app --bind 0.0.0.0:8000
+# CLI tools
+python -m shortube.main auto
 ```
 
 ## Configuration Reference
@@ -179,14 +152,16 @@ hypercorn shortube.web:app --bind 0.0.0.0:8000
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `LLM_PROVIDER` | `groq` | `groq`, `openrouter`, or `ollama` |
-| `LLM_MODEL` | `llama-3.3-70b-versatile` | Model name |
+| `LLM_MODEL` | `llama-3.3-70b-versatile` | Script model |
+| `DISCOVERY_MODEL` | (inherits LLM_MODEL) | Trend refinement model |
+| `QUALITY` | `standard` | `fast`, `standard`, or `pro` |
 | `NICHE` | `general_facts` | Default content niche |
 | `VOICE_NAME` | `en-US-AriaNeural` | edge-tts voice |
 | `VOICE_SPEED` | `1.15` | Playback speed |
-| `VIDEO_WIDTH` | `1080` | Video width (px) |
-| `VIDEO_HEIGHT` | `1920` | Video height (px) |
-| `VIDEO_FPS` | `30` | Frames per second |
+| `VIDEO_WIDTH` / `HEIGHT` | `1080` / `1920` | Canvas size (px) |
 | `BUMPER_DURATION` | `1.5` | Intro/outro bumper length (s) |
+| `TRANSITION_DURATION` | `0.3` | Scene transition length (s) |
+| `TEMPLATE` | `premium` | Visual template from `templates/*.json` |
 | `REMOTION_PROJECT_DIR` | `remotion` | Path to Remotion project |
 | `BACKGROUND_MUSIC_PATH` | -- | Path to music loop |
 | `UPLOAD_PRIVACY` | `public` | `private`, `unlisted`, or `public` |

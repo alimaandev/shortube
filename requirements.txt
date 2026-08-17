@@ -10,6 +10,5 @@ feedparser
 requests
 pydub
 Pillow
-fastapi
-hypercorn
-aiofiles
+apscheduler
+PyQt6

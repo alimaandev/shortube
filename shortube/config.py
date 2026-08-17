@@ -70,16 +70,10 @@ class Settings(BaseSettings):
     image_provider_fallback: bool = True
     media_prefer_videos: bool = True
 
-    use_rq: bool = False
-    redis_url: str = "redis://localhost:6379/0"
+    quality: str = "standard"
 
     remotion_project_dir: str = "remotion"
     remotion_concurrency: int = 0
-    web_host: str = "0.0.0.0"
-    web_port: int = 8000
-    web_reload: bool = False
-    web_server: str = "hypercorn"
-    web_token: str = ""
 
 
 _settings: Settings | None = None

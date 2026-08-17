@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
@@ -23,6 +24,11 @@ class DependencyError(Exception):
 
 
 class PipelineError(Exception):
+    pass
+
+
+class PipelineCancelled(Exception):
+    """Raised when the user cancels a running job."""
     pass
 
 
@@ -65,6 +71,7 @@ def run_pipeline(
     dry_run: bool = False,
     video_id: int | None = None,
     progress_callback: Callable[[str], None] | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> dict[str, str]:
     _check_dependencies()
     cfg = get_settings()
@@ -74,7 +81,14 @@ def run_pipeline(
     out = _output_dir(topic)
     out.mkdir(parents=True, exist_ok=True)
 
+    def _check_cancelled() -> None:
+        if cancel_event is not None and cancel_event.is_set():
+            if video_id:
+                db.update_video(video_id, status="cancelled")
+            raise PipelineCancelled("Job cancelled by user")
+
     def _progress(msg: str) -> None:
+        _check_cancelled()
         logger.info(msg)
         if progress_callback:
             progress_callback(msg)

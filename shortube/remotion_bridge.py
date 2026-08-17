@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 from shortube.config import get_settings
+from shortube.quality import resolve_preset
 from shortube.template_loader import load_template
 from shortube.types import Storyboard
 
@@ -94,19 +95,7 @@ class RemotionError(Exception):
 
 
 def _acquire_render_lock() -> object | None:
-    """Serialize renders. In-process: threading.Lock. RQ mode: Redis lock."""
-    cfg = get_settings()
-    if cfg.use_rq:
-        try:
-            import redis as redis_lib
-            client = redis_lib.from_url(cfg.redis_url)
-            while not client.set("shortube:render_lock", "1", nx=True, ex=3600):
-                logger.info("Waiting for another worker's render to finish...")
-                time.sleep(5)
-            return client
-        except Exception as e:
-            logger.warning("Redis render lock unavailable (%s), proceeding", e)
-            return None
+    """Serialize renders (in-process threading lock)."""
     _RENDER_LOCK.acquire()
     return _RENDER_LOCK
 
@@ -241,7 +230,8 @@ def render_video(
             remotion_dir, render_id,
         )
 
-        fps = cfg.video_fps
+        preset = resolve_preset(cfg.quality)
+        fps = preset.fps or cfg.video_fps
         bumper_frames = int(cfg.bumper_duration * fps)
         transition_frames = int(cfg.transition_duration * fps)
         total_frames = composition_frames(
@@ -268,15 +258,20 @@ def render_video(
             f"--width={cfg.video_width}",
             f"--height={cfg.video_height}",
             f"--fps={fps}",
+            f"--crf={preset.crf}",
         ]
 
-        if cfg.remotion_concurrency > 0:
-            cmd.append(f"--concurrency={cfg.remotion_concurrency}")
-            logger.info("Using concurrency: %d", cfg.remotion_concurrency)
+        concurrency = cfg.remotion_concurrency
+        if concurrency <= 0:
+            concurrency = preset.concurrency
+        if concurrency > 0:
+            cmd.append(f"--concurrency={concurrency}")
+            logger.info("Using concurrency: %d", concurrency)
 
         logger.info(
-            "Remotion render starting: %d frames (%ds + transitions + bumpers)",
-            total_frames, storyboard.total_duration,
+            "Remotion render starting: %d frames (%ds + transitions + bumpers) "
+            "quality=%s crf=%d",
+            total_frames, storyboard.total_duration, cfg.quality, preset.crf,
         )
         logger.debug("Command: %s", " ".join(cmd))
 

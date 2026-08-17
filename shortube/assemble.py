@@ -34,6 +34,10 @@ def _normalize_loudness(output_path: str) -> None:
         logger.warning("ffmpeg not found — skipping loudness normalization")
         return
 
+    from shortube.config import get_settings
+    from shortube.quality import resolve_preset
+    audio_bitrate = resolve_preset(get_settings().quality).audio_bitrate
+
     out = Path(output_path)
     norm = out.with_name(out.stem + "_loudnorm.mp4")
     try:
@@ -41,7 +45,7 @@ def _normalize_loudness(output_path: str) -> None:
             [
                 "ffmpeg", "-y", "-i", str(out),
                 "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-                "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", audio_bitrate,
                 str(norm),
             ],
             capture_output=True,
