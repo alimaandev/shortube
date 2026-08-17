@@ -61,7 +61,7 @@ def refine_topics(ideas: list[TrendIdea], niche: str, max_results: int) -> list[
         llm = create_llm(
             provider=cfg.llm_provider,
             api_key=api_key,
-            model=cfg.discovery_model,
+            model=cfg.discovery_model or cfg.llm_model,
         )
         titles = "\n".join(f"- {i.title[:120]}" for i in ideas[:15])
         raw = llm.generate_json(

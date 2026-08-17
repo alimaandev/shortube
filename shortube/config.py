@@ -61,7 +61,7 @@ class Settings(BaseSettings):
 
     llm_provider: Literal["groq", "openrouter", "ollama"] = "groq"
     llm_model: str = "llama-3.3-70b-versatile"
-    discovery_model: str = "llama-3.3-70b-versatile"
+    discovery_model: str = ""
     llm_temperature: float = 0.8
     llm_max_tokens: int = 800
     ollama_base_url: str = "http://localhost:11434"
