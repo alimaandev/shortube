@@ -215,6 +215,7 @@ def generate_script(topic: str) -> Script:
     )
     base_prompt = _PROMPT.format(niche=cfg.niche, topic=topic)
     hint = ""
+    last_error = ""
 
     for attempt in range(3):
         try:
@@ -251,8 +252,17 @@ def generate_script(topic: str) -> Script:
             hint = "\n".join(f"- {e}" for e in errors)
             logger.warning("Script attempt %d rejected: %s", attempt + 1, hint[:400])
         except LLMError as e:
+            last_error = str(e)
             logger.warning("Script LLM attempt %d failed: %s", attempt + 1, e)
         except Exception as e:
+            last_error = str(e)
             logger.warning("Script attempt %d failed: %s", attempt + 1, e)
 
-    raise ScriptError(f"Failed to generate a valid script after 3 attempts: {hint}")
+    detail = hint or last_error
+    if hint:
+        raise ScriptError(
+            f"Failed to generate a valid script after 3 attempts: {hint}"
+        )
+    raise ScriptError(
+        f"Script generation failed: {detail or 'LLM returned no usable response'}"
+    )
