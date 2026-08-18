@@ -13,26 +13,11 @@ from shortube.pipeline import (
     DependencyError,
     PipelineCancelled,
     PipelineError,
+    StageEvent,
     run_pipeline,
 )
 
 logger = logging.getLogger(__name__)
-
-STAGE_PCT: dict[str, int] = {
-    "Generating script": 5,
-    "Generating voiceover": 25,
-    "Generating storyboard": 45,
-    "Assembling video": 65,
-    "Generating thumbnail": 90,
-    "Uploading to YouTube": 94,
-}
-
-
-def _stage_percent(msg: str) -> int:
-    for prefix, pct in STAGE_PCT.items():
-        if msg.startswith(prefix):
-            return pct
-    return 0
 
 
 class _JobRunner(QObject):
@@ -58,9 +43,8 @@ class _JobRunner(QObject):
             topic = spec["topic"]
             cancel_event = spec["cancel_event"]
 
-            def callback(msg: str, job_id: int = job_id) -> None:
-                pct = _stage_percent(msg)
-                self.progress.emit(job_id, msg, pct)
+            def callback(ev: StageEvent, job_id: int = job_id) -> None:
+                self.progress.emit(job_id, ev.message, ev.percent)
 
             db.update_job(job_id, status="running")
             self.started.emit(job_id, topic)

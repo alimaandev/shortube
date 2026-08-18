@@ -10,7 +10,7 @@ pytest.importorskip("PyQt6")
 
 from shortube.db import Database
 from shortube.desktop import workers
-from shortube.pipeline import PipelineCancelled
+from shortube.pipeline import PipelineCancelled, Stage, StageEvent
 
 
 def _wait(qapp, cond, timeout=8.0):
@@ -25,8 +25,8 @@ def _wait(qapp, cond, timeout=8.0):
 
 def _fake_success_pipeline(topic, privacy="private", channel_id=None, dry_run=False,
                            video_id=None, progress_callback=None, cancel_event=None):
-    progress_callback("Generating script...")
-    progress_callback("Assembling video...")
+    progress_callback(StageEvent(Stage.SCRIPT))
+    progress_callback(StageEvent(Stage.ASSEMBLE))
     return {"url": "https://youtu.be/abc123"}
 
 
@@ -61,7 +61,7 @@ def test_cancel_path(monkeypatch, qapp, settings):
                              video_id=None, progress_callback=None, cancel_event=None):
         while cancel_event is not None and not cancel_event.is_set():
             time.sleep(0.02)
-        progress_callback("Generating script...")
+        progress_callback(StageEvent(Stage.SCRIPT))
         raise PipelineCancelled("cancelled")
 
     monkeypatch.setattr(workers, "run_pipeline", fake_cancel_pipeline)
