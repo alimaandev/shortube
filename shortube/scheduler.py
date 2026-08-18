@@ -20,7 +20,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from shortube.config import get_settings
 from shortube.db import Database
 from shortube.discover import discover
-from shortube.pipeline import PipelineError, run_pipeline
+from shortube.pipeline import PipelineError, StageEvent, run_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +116,8 @@ def _run_scheduled_job():
                 vid = db.create_video(tid, privacy=privacy)
                 logger.info("Scheduled: generating '%s' (video #%d)", idea.title[:50], vid)
 
-                def progress(msg: str):
-                    logger.debug("Scheduled job: %s", msg)
+                def progress(ev: StageEvent):
+                    logger.debug("Scheduled job: %s", ev.message)
 
                 result = run_pipeline(
                     idea.title,
