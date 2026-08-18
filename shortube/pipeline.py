@@ -7,14 +7,14 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
+from shortube.assemble import assemble_video
 from shortube.config import get_settings
 from shortube.db import Database
-from shortube.script import ScriptError, generate_script
-from shortube.voice import VoiceError, generate_voiceover
-from shortube.storyboard import StoryboardError, generate_storyboard
-from shortube.assemble import AssemblyError, assemble_video
-from shortube.upload import UploadError, generate_thumbnail, upload_script
+from shortube.script import generate_script
+from shortube.storyboard import generate_storyboard
 from shortube.types import Script, Storyboard
+from shortube.upload import generate_thumbnail, upload_script
+from shortube.voice import generate_voiceover
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,6 @@ class PipelineError(Exception):
 
 class PipelineCancelled(Exception):
     """Raised when the user cancels a running job."""
-    pass
 
 
 def _check_dependencies() -> None:

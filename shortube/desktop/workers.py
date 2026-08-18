@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
@@ -57,7 +58,7 @@ class _JobRunner(QObject):
             topic = spec["topic"]
             cancel_event = spec["cancel_event"]
 
-            def callback(msg: str) -> None:
+            def callback(msg: str, job_id: int = job_id) -> None:
                 pct = _stage_percent(msg)
                 self.progress.emit(job_id, msg, pct)
 

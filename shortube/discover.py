@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 import feedparser
 import requests
 
 from shortube.config import get_settings
-from shortube.llm import LLMError, create_llm
+from shortube.llm import create_llm
 from shortube.types import TrendIdea
 
 logger = logging.getLogger(__name__)

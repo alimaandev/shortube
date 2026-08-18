@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -23,10 +24,7 @@ def build_text(hook: str, points: list[str], cta: str) -> str:
 
     Uses punctuation and line breaks to create natural pacing.
     """
-    parts: list[str] = [hook]
-    for pt in points:
-        parts.append(pt)
-    parts.append(cta)
+    parts = [hook, *points, cta]
     return "\n\n".join(parts)
 
 
@@ -196,10 +194,8 @@ def generate_voiceover(
         # Clean up only the temp drafts; any previously existing final
         # files are left untouched so retries never lose good audio.
         for stale in (tmp_audio, tmp_ts):
-            try:
+            with contextlib.suppress(OSError):
                 Path(stale).unlink()
-            except OSError:
-                pass
         raise
 
     _verify_audio_file(output_path)

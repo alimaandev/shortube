@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from shortube.config import get_settings
 from shortube.scheduler import get_schedule_config, update_schedule_config
 
 

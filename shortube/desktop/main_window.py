@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
 
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
-        for key, label in NAV_ITEMS:
+        for _, label in NAV_ITEMS:
             btn = QPushButton(label)
             btn.setObjectName("navButton")
             btn.setCheckable(True)
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(self._stack, 1)
         self.setCentralWidget(root)
 
-        for i, (key, _) in enumerate(NAV_ITEMS):
+        for i in range(len(NAV_ITEMS)):
             self._nav_group.buttons()[i].clicked.connect(
                 lambda _=False, idx=i: self._stack.setCurrentIndex(idx)
             )

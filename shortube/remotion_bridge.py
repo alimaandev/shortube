@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import tempfile
 import threading
-import time
 import uuid
 from pathlib import Path
 
@@ -68,10 +67,9 @@ def _find_npx() -> str:
         return found
 
     common_paths = [
-        Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "nodejs",
-        Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "nodejs",
+        Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "nodejs",
+        Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)")) / "nodejs",
         Path(os.environ.get("LOCALAPPDATA", "")) / "fnm" / "node-versions",
-        Path("E:\\nodejs"),
     ]
     for p in common_paths:
         candidates = [
@@ -105,11 +103,6 @@ def _release_render_lock(token: object | None) -> None:
         return
     if token is _RENDER_LOCK:
         _RENDER_LOCK.release()
-        return
-    try:
-        token.delete("shortube:render_lock")
-    except Exception:
-        pass
 
 
 def composition_frames(
@@ -282,6 +275,7 @@ def render_video(
                 capture_output=True,
                 text=True,
                 timeout=3600,
+                check=False,
             )
             if result.returncode != 0:
                 stderr = result.stderr[-3000:] if result.stderr else ""
@@ -290,11 +284,11 @@ def render_video(
                 )
             logger.info("Remotion render complete: %s", output_path)
         except subprocess.TimeoutExpired:
-            raise RemotionError("Remotion render timed out after 1 hour")
+            raise RemotionError("Remotion render timed out after 1 hour") from None
         except FileNotFoundError:
             raise RemotionError(
                 "npx not found. Ensure Node.js and npm are installed and on PATH."
-            )
+            ) from None
     finally:
         _release_render_lock(lock_token)
 

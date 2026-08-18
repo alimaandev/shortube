@@ -1,0 +1,29 @@
+[project]
+name = "shortube"
+version = "1.0.0"
+description = "AI-Powered YouTube Shorts Studio — desktop app"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "e2e: end-to-end smoke tests running a real Remotion render (requires Node.js; gated by SHORTUBE_E2E=1)",
+    "network: tests requiring live network/API access",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["remotion", ".opencode"]
+
+[tool.ruff.lint]
+# BLE001 (blind except) is deliberately excluded here; Phase 1 of the
+# refactor removes every blind except and then this rule gets enabled.
+# PLW0602 / ASYNC230 are deferred to the scheduler (Phase 3) and
+# voice (Phase 4) rewrites respectively.
+select = ["E", "F", "I", "UP", "SIM", "B", "DTZ", "PIE", "PLW1510", "S110", "F841", "PERF402", "ASYNC230"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# voice.py moves to non-blocking file I/O in the Phase 4 voice rewrite.
+"shortube/voice.py" = ["ASYNC230"]
