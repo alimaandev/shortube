@@ -14,6 +14,7 @@
 ![TTS](https://img.shields.io/badge/TTS-edge--tts-00838F?style=for-the-badge)
 ![YouTube](https://img.shields.io/badge/YouTube-API%20v3-FF0000?style=for-the-badge&logo=youtube&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-4C9F38?style=for-the-badge&logo=open-source-initiative&logoColor=white)
+![CI](https://img.shields.io/github/actions/workflow/status/alimaandev/shortube/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=CI)
 
 **⭐ From idea to published Short in minutes — no video editing skills required.**
 
@@ -175,14 +176,15 @@ Create your own by copying one and picking new colors — the app lists it autom
 shortube/
 ├── 🖥️ desktop/                # PyQt6 desktop app
 │   ├── app.py                 # Entry point (python -m shortube.desktop)
-│   ├── main_window.py         # Sidebar navigation + job manager wiring
+│   ├── main_window.py         # Thin view: navigation + job wiring
+│   ├── app_controller.py      # Facade for all DB write orchestration
 │   ├── workers.py             # Background job thread, signals, cancel
 │   ├── setup_wizard.py        # First-run configuration wizard
 │   ├── theme.py               # Dark theme, template-aware accent color
 │   └── pages/                 # dashboard · trends · videos · settings · schedule · analytics
 ├── main.py                    # CLI entry point (Click)
-├── pipeline.py                # 5-stage orchestrator
-├── script.py                  # LLM script generation + validation + retries
+├── pipeline.py                # PipelineOrchestrator: typed stages + resume
+├── script.py                  # ScriptWriter: LLM script generation + validation + retries
 ├── voice.py                   # edge-tts voiceover with word timestamps
 ├── storyboard.py              # Scene builder + media providers
 ├── assemble.py                # Remotion assembly + loudness normalization
@@ -193,10 +195,10 @@ shortube/
 ├── upload.py                  # YouTube Data API v3 upload + thumbnails
 ├── analytics.py               # Video statistics
 ├── discover.py                # Trend discovery engine
-├── llm.py                     # LLM abstraction (Groq / OpenRouter / Ollama)
+├── llm.py                     # One OpenAI-compatible LLM client (Groq / OpenRouter / Ollama)
 ├── settings_env.py            # .env persistence for the settings UI
 ├── config.py                  # Pydantic settings (.env)
-├── db.py                      # SQLite database
+├── db.py                      # SQLite database (versioned migrations, typed rows)
 └── types.py                   # Data classes
 
 remotion/                      # Renderer (TypeScript)
@@ -300,11 +302,22 @@ All settings live in the desktop app (Settings tab) or `.env`. Most work with ei
 
 ## 🤝 Contributing
 
-Found a bug or have an idea? Open an [issue](https://github.com/alimaandev/shortube/issues) or submit a PR. Please run the test suite before pushing:
+Found a bug or have an idea? Open an [issue](https://github.com/alimaandev/shortube/issues) or submit a PR. The CI pipeline runs the same gates locally:
 
 ```bash
-python -m py_compile shortube/*.py
+python -m ruff check shortube tests   # lint
+python -m pytest                      # unit tests (84+)
 ```
+
+The real-render E2E smoke test is opt-in and needs Node.js + the Remotion deps installed:
+
+```bash
+cd remotion && npm install && cd ..
+$env:SHORTUBE_E2E = "1"   # PowerShell (Linux/macOS: export SHORTUBE_E2E=1)
+python -m pytest -m e2e
+```
+
+Other gates: `python -m compileall -q shortube`, `npx tsc --noEmit` in `remotion/`, and a Qt offscreen boot check of `MainWindow`.
 
 ---
 

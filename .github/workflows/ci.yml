@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check shortube tests
+
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run unit tests (E2E render auto-skipped)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest -q
+
+  e2e:
+    name: E2E render (Remotion)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Install Remotion renderer
+        working-directory: remotion
+        run: npm install
+      - name: Type-check renderer
+        working-directory: remotion
+        run: npx tsc --noEmit
+      - name: Render a real Short
+        env:
+          SHORTUBE_E2E: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: pytest -q -m e2e
