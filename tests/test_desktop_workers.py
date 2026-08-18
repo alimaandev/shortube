@@ -50,7 +50,7 @@ def test_job_flow_happy_path(monkeypatch, qapp, settings):
     try:
         assert _wait(qapp, lambda: any(e[0] == "finished" for e in events))
         assert any(e[0] == "progress" and e[2] == "Generating script..." for e in events)
-        assert db.get_job(jid)["status"] == "done"
+        assert db.get_job(jid).status == "done"
         assert db.is_topic_used("test topic")
     finally:
         jm.shutdown()
@@ -79,7 +79,7 @@ def test_cancel_path(monkeypatch, qapp, settings):
         _wait(qapp, lambda: True, timeout=0.5)
         jm.cancel_current()
         assert _wait(qapp, lambda: bool(cancelled))
-        assert db.get_job(jid)["status"] == "cancelled"
+        assert db.get_job(jid).status == "cancelled"
     finally:
         jm.shutdown()
 
@@ -103,6 +103,6 @@ def test_failure_path(monkeypatch, qapp, settings):
         assert _wait(qapp, lambda: bool(failed))
         assert failed[0][0] == jid
         assert "assembly exploded" in failed[0][1]
-        assert db.get_job(jid)["status"] == "failed"
+        assert db.get_job(jid).status == "failed"
     finally:
         jm.shutdown()

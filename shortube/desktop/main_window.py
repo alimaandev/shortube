@@ -194,11 +194,11 @@ class MainWindow(QMainWindow):
         if not video:
             self.notify("Video not found")
             return False
-        topic = (video.get("topic_title") or "").strip()
+        topic = (video.topic_title or "").strip()
         if not topic:
             self.notify("Video has no topic")
             return False
-        privacy = video.get("privacy") or "private"
+        privacy = video.privacy or "private"
         db.update_video(video_id, status="pending", error="")
         jid = db.create_job(video_id, "retry")
         self.jobs.submit(jid, video_id, topic, privacy)
