@@ -61,3 +61,33 @@ def test_settings_written_to_base_dir(settings, tmp_path):
     save_settings({"niche": "space"})
     assert (tmp_path / ".env").exists()
     assert read_env()["NICHE"] == "space"
+
+
+def test_saving_without_key_preserves_existing_keys(settings, tmp_path):
+    save_settings({"groq_api_key": "sk-secret-123"})
+    save_settings({"niche": "space"})
+    env = read_env()
+    assert env["GROQ_API_KEY"] == "sk-secret-123"
+    assert env["NICHE"] == "space"
+
+
+def test_none_value_removes_key(settings, tmp_path):
+    save_settings({"groq_api_key": "sk-secret-123"})
+    save_settings({"groq_api_key": None})
+    assert "GROQ_API_KEY" not in read_env()
+
+
+def test_env_alias_matches_settings_loading(settings, tmp_path):
+    # The alias generator must agree with what Settings() reads from .env,
+    # otherwise the GUI writes keys the model never sees.
+    save_settings({
+        "caption_font_size": 52,
+        "upload_publish_at": "2026-09-01T10:00:00Z",
+        "sfx_enabled": False,
+    })
+    from shortube.config import Settings
+
+    fresh = Settings(_env_file=str(tmp_path / ".env"))
+    assert fresh.caption_font_size == 52
+    assert fresh.upload_publish_at == "2026-09-01T10:00:00Z"
+    assert fresh.sfx_enabled is False

@@ -25,7 +25,6 @@ def _load_scheduler(monkeypatch, base_dir: Path):
 
     sched = importlib.import_module("shortube.scheduler")
     sched = importlib.reload(sched)
-    sched._CONFIG_PATH = base_dir / "output" / ".scheduler_config.json"
     sched._load_config()
     return sched
 
@@ -52,10 +51,7 @@ def test_daily_counter_persists_across_restarts(tmp_path, monkeypatch):
     sched._reset_daily_count()
     assert sched._generated_today == 0
     assert sched._last_date != "2000-01-01"
-    data = json.loads(
-        (tmp_path / "output" / ".scheduler_config.json").read_text(encoding="utf-8")
-    )
-    assert data["generated_today"] == 0
+    assert not (tmp_path / "output" / ".scheduler_config.json").exists()
     sched.stop_scheduler()
 
 
@@ -65,3 +61,34 @@ def test_update_keeps_counter_and_toggles_scheduler(scheduler):
     assert cfg["generated_today"] == 3
     assert cfg["interval_hours"] == 8
     assert cfg["running"] is False
+
+
+def test_legacy_json_config_migrated_to_db(tmp_path, monkeypatch):
+    legacy = tmp_path / "output" / ".scheduler_config.json"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text(json.dumps({
+        "enabled": True,
+        "interval_hours": 12,
+        "max_daily": 2,
+        "niche": "space",
+        "generated_today": 3,
+        "last_date": "2026-08-16",
+    }), encoding="utf-8")
+
+    sched = _load_scheduler(monkeypatch, tmp_path)
+    assert sched._schedule_config["interval_hours"] == 12
+    assert sched._generated_today == 3
+    assert not legacy.exists()
+    raw = sched.db.get_kv(sched._KV_KEY)
+    assert json.loads(raw)["niche"] == "space"
+    sched.stop_scheduler()
+
+
+def test_db_is_authoritative_after_migration(tmp_path, monkeypatch):
+    sched = _load_scheduler(monkeypatch, tmp_path)
+    sched.update_schedule_config({"interval_hours": 24, "enabled": False})
+    assert sched._schedule_config["interval_hours"] == 24
+
+    reloaded = _load_scheduler(monkeypatch, tmp_path)
+    assert reloaded._schedule_config["interval_hours"] == 24
+    reloaded.stop_scheduler()

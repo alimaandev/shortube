@@ -64,9 +64,15 @@ def test_update_job_rejects_unknown_columns(db):
 def test_fresh_db_reaches_latest_schema_version(db):
     conn = sqlite3.connect(str(db._path))
     version = conn.execute("PRAGMA user_version").fetchone()[0]
-    assert version >= 2
+    assert version >= 3
     columns = {c[1] for c in conn.execute("PRAGMA table_info(videos)").fetchall()}
     assert {"storyboard_json", "music_path"} <= columns
+    tables = {
+        r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    assert "kv" in tables
     conn.close()
 
 
@@ -103,7 +109,7 @@ def test_legacy_v1_database_upgrades_in_place(tmp_path):
 
     db = Database(path)
     conn = sqlite3.connect(path)
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
     columns = {c[1] for c in conn.execute("PRAGMA table_info(videos)").fetchall()}
     assert {"storyboard_json", "music_path"} <= columns
     conn.close()

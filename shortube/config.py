@@ -1,9 +1,22 @@
+"""Application settings.
+
+Single source of truth: the `Settings` pydantic model below maps every
+field to its .env variable via the `_to_env_alias` generator, so the
+GUI key <-> env key mapping (KEY_MAP in earlier builds) can never drift.
+"""
+
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _to_env_alias(name: str) -> str:
+    """`caption_font_size` -> `CAPTION_FONT_SIZE` (used for .env keys)."""
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).upper()
 
 
 class Settings(BaseSettings):
@@ -11,6 +24,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        alias_generator=_to_env_alias,
+        populate_by_name=True,
     )
 
     base_dir: Path = Path(__file__).resolve().parent.parent
@@ -85,3 +100,13 @@ def reset_settings() -> None:
     """Drop the cached settings so the next get_settings() re-reads .env."""
     global _settings
     _settings = None
+
+
+def env_key(field_name: str) -> str:
+    """The .env variable name for a Settings field (e.g. 'video_fps')."""
+    return _to_env_alias(field_name)
+
+
+def all_env_keys() -> set[str]:
+    """Every .env variable name the Settings model understands."""
+    return {_to_env_alias(name) for name in Settings.model_fields}

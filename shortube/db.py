@@ -120,9 +120,19 @@ def _migration_v2(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE videos ADD COLUMN {column} TEXT")
 
 
+def _migration_v3(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS kv (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+    """)
+
+
 _MIGRATIONS: tuple[tuple[str, Callable[[sqlite3.Connection], None]], ...] = (
     ("initial schema", _migration_v1),
     ("video extra columns", _migration_v2),
+    ("key-value settings store", _migration_v3),
 )
 
 _VIDEO_COLUMNS = frozenset({
@@ -265,3 +275,22 @@ class Database:
             "WHERE j.id = ?", (job_id,)
         ).fetchone()
         return JobRow(**dict(row)) if row else None
+
+    # ── Key-value settings ────────────────────────────────────────────
+
+    def get_kv(self, key: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT value FROM kv WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else None
+
+    def set_kv(self, key: str, value: str) -> None:
+        self._conn.execute("""
+            INSERT INTO kv (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        """, (key, value))
+        self._conn.commit()
+
+    def delete_kv(self, key: str) -> None:
+        self._conn.execute("DELETE FROM kv WHERE key = ?", (key,))
+        self._conn.commit()

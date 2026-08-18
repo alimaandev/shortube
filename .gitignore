@@ -48,5 +48,3 @@ remotion/public/render/
 shortube.db
 shortube.db-shm
 shortube.db-wal
-output/.scheduler_config.json
-.env.tmp

@@ -1,3 +1,11 @@
+"""Automatic topic discovery + pipeline runner on a schedule.
+
+The schedule configuration (interval, daily cap, niche, privacy and the
+daily counter) is persisted in the shared SQLite database (kv table).
+Databases from older builds that still carry `output/.scheduler_config.json`
+are migrated on first load and the file is removed.
+"""
+
 from __future__ import annotations
 
 import json
@@ -16,10 +24,11 @@ from shortube.pipeline import PipelineError, run_pipeline
 
 logger = logging.getLogger(__name__)
 
+_KV_KEY = "scheduler_config"
+
 _scheduler: BackgroundScheduler | None = None
 db = Database()
 
-_CONFIG_PATH: Path | None = None
 _schedule_config: dict[str, Any] = {
     "enabled": False,
     "interval_hours": 6,
@@ -33,22 +42,38 @@ _generated_today: int = 0
 _last_date: str = ""
 
 
-def _config_path() -> Path:
-    global _CONFIG_PATH
-    if _CONFIG_PATH is None:
-        _CONFIG_PATH = get_settings().base_dir / "output" / ".scheduler_config.json"
-    return _CONFIG_PATH
+def _legacy_config_path() -> Path:
+    return get_settings().base_dir / "output" / ".scheduler_config.json"
+
+
+def _migrate_legacy_file() -> None:
+    """One-time import of the pre-SQLite scheduler config, then delete it."""
+    global _generated_today, _last_date
+    legacy = _legacy_config_path()
+    if not legacy.exists():
+        return
+    try:
+        data = json.loads(legacy.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            _schedule_config.update(data)
+            _generated_today = int(_schedule_config.get("generated_today", 0))
+            _last_date = str(_schedule_config.get("last_date", ""))
+            _save_config()
+            logger.info("Migrated scheduler config from %s", legacy)
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Ignoring unreadable legacy scheduler config %s", legacy)
+    legacy.unlink(missing_ok=True)
 
 
 def _load_config():
     global _schedule_config, _generated_today, _last_date
-    path = _config_path()
-    if path.exists():
+    _migrate_legacy_file()
+    raw = db.get_kv(_KV_KEY)
+    if raw:
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            _schedule_config.update(data)
-        except (json.JSONDecodeError, OSError):
-            pass
+            _schedule_config.update(json.loads(raw))
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Ignoring corrupt scheduler config in database")
     # Restore the daily counter so restarts cannot bypass max_daily.
     _generated_today = int(_schedule_config.get("generated_today", 0))
     _last_date = str(_schedule_config.get("last_date", ""))
@@ -58,9 +83,7 @@ def _save_config():
     global _generated_today, _last_date
     _schedule_config["generated_today"] = _generated_today
     _schedule_config["last_date"] = _last_date
-    path = _config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_schedule_config, indent=2), encoding="utf-8")
+    db.set_kv(_KV_KEY, json.dumps(_schedule_config))
 
 
 def _reset_daily_count():
