@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from shortube.config import get_settings
+from shortube.desktop.app_controller import AppController
 from shortube.desktop.pages.analytics import AnalyticsPage
 from shortube.desktop.pages.dashboard import DashboardPage
 from shortube.desktop.pages.schedule import SchedulePage
@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(980, 640)
 
         self.jobs = JobManager(self)
+        self.app = AppController()
         self.apply_theme()
 
         root = QWidget()
@@ -138,71 +139,40 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(message, timeout_ms)
 
     def queue_generate(self, topic: str, niche: str, privacy: str) -> bool:
-        from shortube.db import Database
-
-        topic = topic.strip()
-        if not topic:
-            self.notify("Enter a topic first")
+        result = self.app.queue_generate(topic, niche, privacy)
+        if not result.ok:
+            self.notify(result.error)
             return False
-        cfg = get_settings()
-        niche_val = niche.strip() or cfg.niche
-        db = Database()
-        tid = db.add_topic(topic, niche=niche_val)
-        vid = db.create_video(tid, privacy=privacy)
-        jid = db.create_job(vid, "manual")
-        self.jobs.submit(jid, vid, topic, privacy)
-        self.notify(f"Queued: {topic[:50]}")
+        pick = result.pick
+        self.jobs.submit(pick.job_id, pick.video_id, pick.topic, pick.privacy)
+        self.notify(f"Queued: {pick.topic[:50]}")
         return True
 
     def queue_auto(self, niche: str, privacy: str) -> None:
-        from shortube.db import Database
-        from shortube.discover import discover
-
-        cfg = get_settings()
-        niche_val = niche.strip() or cfg.niche
         self.notify("Discovering topics...")
 
-        def work() -> list[dict]:
-            db = Database()
-            ideas = discover(niche_val, max_results=5)
-            for idea in ideas:
-                if not db.is_topic_used(idea.title):
-                    tid = db.add_topic(
-                        idea.title, niche=niche_val,
-                        source=idea.source, score=idea.score,
-                    )
-                    vid = db.create_video(tid, privacy=privacy)
-                    jid = db.create_job(vid, "auto")
-                    return {"jid": jid, "vid": vid, "topic": idea.title}
-            return {}
+        def work() -> AppController:
+            return self.app.queue_auto(niche, privacy)
 
-        def done(pick: dict) -> None:
-            if not pick:
-                self.notify("No undiscovered topics found")
+        def done(result) -> None:
+            if not result.ok:
+                self.notify(result.error)
                 return
-            self.jobs.submit(pick["jid"], pick["vid"], pick["topic"], privacy)
-            self.notify(f"Auto: queued '{pick['topic'][:50]}'")
+            pick = result.pick
+            self.jobs.submit(pick.job_id, pick.video_id, pick.topic, pick.privacy)
+            self.notify(f"Auto: queued '{pick.topic[:50]}'")
 
         from shortube.desktop.workers import run_in_thread
         run_in_thread(work, done, on_error=lambda err: self.notify(f"Auto failed: {err}"))
 
     def queue_retry(self, video_id: int) -> bool:
-        from shortube.db import Database
-
-        db = Database()
-        video = db.get_video(video_id)
-        if not video:
-            self.notify("Video not found")
+        result = self.app.queue_retry(video_id)
+        if not result.ok:
+            self.notify(result.error)
             return False
-        topic = (video.topic_title or "").strip()
-        if not topic:
-            self.notify("Video has no topic")
-            return False
-        privacy = video.privacy or "private"
-        db.update_video(video_id, status="pending", error="")
-        jid = db.create_job(video_id, "retry")
-        self.jobs.submit(jid, video_id, topic, privacy)
-        self.notify(f"Retrying: {topic[:50]}")
+        pick = result.pick
+        self.jobs.submit(pick.job_id, pick.video_id, pick.topic, pick.privacy)
+        self.notify(f"Retrying: {pick.topic[:50]}")
         return True
 
     def closeEvent(self, event) -> None:
