@@ -1,0 +1,19 @@
+---
+name: Feature request
+about: Suggest an idea for Shortube
+title: "[Feature] "
+labels: enhancement
+assignees: ""
+---
+
+**Problem**
+What problem are you trying to solve? Describe the pain point, not just the feature name.
+
+**Proposed solution**
+What you'd like the feature to do, and how it should behave.
+
+**Alternatives considered**
+Any workarounds or different approaches you've thought about.
+
+**Additional context**
+Mockups, examples from other tools, or links that help explain the idea.

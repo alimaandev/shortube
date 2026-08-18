@@ -1,0 +1,31 @@
+---
+name: Bug report
+about: Something isn't working as expected
+title: "[Bug] "
+labels: bug
+assignees: ""
+---
+
+**Describe the bug**
+A clear and concise description of what goes wrong.
+
+**To reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '...'
+3. See error
+
+**Expected behavior**
+What you expected to happen instead.
+
+**Screenshots / logs**
+If applicable, paste the error traceback and any relevant log output.
+
+**Environment (please complete):**
+- OS: [e.g. Windows 11, macOS 14, Ubuntu 24.04]
+- Python version: [e.g. 3.12]
+- Node.js version: [e.g. 20]
+- Shortube version / commit: [e.g. master @ abc123]
+
+**Additional context**
+Anything else that might help — e.g. LLM provider in use, `.env` keys present (mask secrets!), template, quality preset.

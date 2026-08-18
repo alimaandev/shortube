@@ -302,7 +302,7 @@ All settings live in the desktop app (Settings tab) or `.env`. Most work with ei
 
 ## 🤝 Contributing
 
-Found a bug or have an idea? Open an [issue](https://github.com/alimaandev/shortube/issues) or submit a PR. The CI pipeline runs the same gates locally:
+Found a bug or have an idea? Open an [issue](https://github.com/alimaandev/shortube/issues) or submit a PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide; the CI pipeline runs the same gates locally:
 
 ```bash
 python -m ruff check shortube tests   # lint
