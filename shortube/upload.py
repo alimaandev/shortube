@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import os
 import pickle
-from pathlib import Path
 
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
@@ -129,7 +128,7 @@ def upload_video(
 
         return f"https://youtu.be/{video_id}"
     except HttpError as e:
-        raise UploadError(f"YouTube upload failed: {e}")
+        raise UploadError(f"YouTube upload failed: {e}") from e
 
 
 # ── Thumbnail ────────────────────────────────────────────────────────

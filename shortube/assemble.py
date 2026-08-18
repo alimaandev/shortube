@@ -51,6 +51,7 @@ def _normalize_loudness(output_path: str) -> None:
             capture_output=True,
             text=True,
             timeout=600,
+            check=False,
         )
         if result.returncode == 0 and norm.exists() and norm.stat().st_size > 0:
             os.replace(norm, out)

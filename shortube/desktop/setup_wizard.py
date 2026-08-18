@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from PyQt6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QVBoxLayout,
-    QWidget,
     QWizard,
     QWizardPage,
 )
@@ -16,6 +16,8 @@ from shortube.config import get_settings
 from shortube.desktop.workers import run_in_thread
 from shortube.settings_env import save_settings
 from shortube.template_loader import DEFAULTS
+
+logger = logging.getLogger(__name__)
 
 PROVIDER_DEFAULT_MODELS = {
     "groq": "llama-3.3-70b-versatile",
@@ -167,5 +169,5 @@ class SetupWizard(QWizard):
             payload["ollama_base_url"] = self.llm_page.url_input.text().strip()
         try:
             save_settings(payload)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Setup wizard save failed: %s", e)

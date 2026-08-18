@@ -30,7 +30,9 @@ class Script:
 
     @classmethod
     def from_dict(cls, data: dict) -> Script:
-        _strip = lambda t: re.sub(r"<[^>]+>", "", t).strip()
+        def _strip(text: str) -> str:
+            return re.sub(r"<[^>]+>", "", text).strip()
+
         return cls(
             topic=_strip(data.get("topic", "")),
             hook=_strip(data.get("hook", "")),

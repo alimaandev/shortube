@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
-from shortube.config import get_settings
 from shortube.db import Database
 from shortube.upload import _get_service
 
@@ -49,7 +48,7 @@ def fetch_video_stats(youtube_url: str) -> dict[str, Any]:
             "published_at": snippet.get("publishedAt", ""),
             "thumbnail": (snippet.get("thumbnails", {})
                           .get("high", {}).get("url", "")),
-            "fetched_at": datetime.now().isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         logger.warning("Failed to fetch stats for %s: %s", youtube_url, e)

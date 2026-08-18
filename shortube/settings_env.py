@@ -64,7 +64,10 @@ def save_settings(payload: dict[str, Any]) -> None:
         lines = env_file.read_text(encoding="utf-8").splitlines()
 
     keys_to_remove = set(KEY_MAP.values())
-    lines = [l for l in lines if not any(l.startswith(k + "=") for k in keys_to_remove)]
+    lines = [
+        line for line in lines
+        if not any(line.startswith(k + "=") for k in keys_to_remove)
+    ]
 
     new_lines: list[str] = []
     for py_key, env_key in KEY_MAP.items():

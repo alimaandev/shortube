@@ -38,7 +38,7 @@ class GroqProvider:
         try:
             from groq import Groq
         except ImportError:
-            raise LLMError("groq package not installed. Run: pip install groq")
+            raise LLMError("groq package not installed. Run: pip install groq") from None
         self._client = Groq(api_key=api_key, timeout=60)
         self._model = model
 
@@ -65,7 +65,7 @@ class GroqProvider:
                 raise LLMError("LLM returned empty response")
             return content
         except Exception as e:
-            raise LLMError(f"Groq API call failed: {e}")
+            raise LLMError(f"Groq API call failed: {e}") from e
 
     def generate_json(
         self,
@@ -84,7 +84,7 @@ class GroqProvider:
                 return recovered
             raise LLMError(
                 f"Failed to parse LLM response as JSON.\nRaw: {raw[:500]}"
-            )
+            ) from None
 
     @staticmethod
     def _clean_json(raw: str) -> str:
@@ -129,7 +129,7 @@ class OpenRouterProvider:
         try:
             from openai import OpenAI
         except ImportError:
-            raise LLMError("openai package not installed. Run: pip install openai")
+            raise LLMError("openai package not installed. Run: pip install openai") from None
         self._client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=api_key,
@@ -160,7 +160,7 @@ class OpenRouterProvider:
                 raise LLMError("LLM returned empty response")
             return content
         except Exception as e:
-            raise LLMError(f"OpenRouter API call failed: {e}")
+            raise LLMError(f"OpenRouter API call failed: {e}") from e
 
     def generate_json(
         self,
@@ -179,7 +179,7 @@ class OpenRouterProvider:
                 return recovered
             raise LLMError(
                 f"Failed to parse LLM response as JSON.\nRaw: {raw[:500]}"
-            )
+            ) from None
 
 
 class OllamaProvider:
@@ -187,7 +187,7 @@ class OllamaProvider:
         try:
             from openai import OpenAI
         except ImportError:
-            raise LLMError("openai package not installed. Run: pip install openai")
+            raise LLMError("openai package not installed. Run: pip install openai") from None
         from shortube.config import get_settings
         base_url = get_settings().ollama_base_url.rstrip("/") + "/v1"
         self._client = OpenAI(base_url=base_url, api_key="ollama", timeout=30)
@@ -216,7 +216,7 @@ class OllamaProvider:
                 raise LLMError("LLM returned empty response")
             return content
         except Exception as e:
-            raise LLMError(f"Ollama API call failed: {e}")
+            raise LLMError(f"Ollama API call failed: {e}") from e
 
     def generate_json(
         self,
@@ -235,7 +235,7 @@ class OllamaProvider:
                 return recovered
             raise LLMError(
                 f"Failed to parse LLM response as JSON.\nRaw: {raw[:500]}"
-            )
+            ) from None
 
 
 _PROVIDERS: dict[str, type] = {

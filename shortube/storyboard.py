@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import io
 import json
 import logging
 import os
@@ -8,9 +7,8 @@ import random
 import re
 import time
 import urllib.parse
-
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
 
@@ -198,18 +196,22 @@ class PexelsVideoProvider(MediaProvider):
             results: list[dict] = []
             for video in data.get("videos", []):
                 for file in video.get("video_files", []):
-                    if file.get("width", 0) >= 720 and file.get("quality") == "hd" and file.get("file_type") == "video/mp4":
-                        if file.get("link"):
-                            results.append({
-                                "url": file["link"],
-                                "width": file.get("width", 1080),
-                                "height": file.get("height", 1920),
-                                "type": "video",
-                                "provider": "pexels",
-                                "duration": video.get("duration"),
-                                "thumbnail": (video.get("image") or ""),
-                            })
-                            break
+                    if (
+                        file.get("width", 0) >= 720
+                        and file.get("quality") == "hd"
+                        and file.get("file_type") == "video/mp4"
+                        and file.get("link")
+                    ):
+                        results.append({
+                            "url": file["link"],
+                            "width": file.get("width", 1080),
+                            "height": file.get("height", 1920),
+                            "type": "video",
+                            "provider": "pexels",
+                            "duration": video.get("duration"),
+                            "thumbnail": (video.get("image") or ""),
+                        })
+                        break
             logger.info("Pexels videos: found %d for '%s'", len(results), query[:40])
             return results
         except requests.RequestException as e:
@@ -391,7 +393,6 @@ def _generate_fallback_image(
     height: int = 1920,
 ) -> str:
     img = Image.new("RGB", (width, height))
-    gradient = Image.new("RGB", (width, height))
     for y in range(height):
         r = int(20 + (y / height) * 30)
         g = int(20 + (y / height) * 50)
@@ -403,10 +404,10 @@ def _generate_fallback_image(
     font_size = 48
     try:
         font = ImageFont.truetype("arial.ttf", font_size)
-    except (OSError, IOError):
+    except OSError:
         try:
             font = ImageFont.truetype("C:\\Windows\\Fonts\\segoeui.ttf", font_size)
-        except (OSError, IOError):
+        except OSError:
             font = ImageFont.load_default()
 
     max_w = width - 120

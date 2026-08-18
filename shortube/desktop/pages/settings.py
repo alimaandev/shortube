@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 from shortube.config import get_settings
 from shortube.desktop.workers import run_in_thread
 from shortube.quality import QUALITY_PRESETS
-from shortube.settings_env import read_env, save_settings
+from shortube.settings_env import save_settings
 from shortube.template_loader import DEFAULTS
 
 PROVIDER_DEFAULT_MODELS = {
