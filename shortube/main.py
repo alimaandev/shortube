@@ -110,7 +110,7 @@ def auto(niche, dry_run, public, channel):
             try:
                 _run_pipeline(topic, privacy, channel, dry_run, video_id=vid)
                 db.mark_topic_used(topic)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — CLI boundary: log and try the next topic
                 logger.error("Pipeline failed: %s", e)
             return
 

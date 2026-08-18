@@ -45,11 +45,7 @@ class Settings(BaseSettings):
     sfx_enabled: bool = True
     sfx_dir: str = "resources/sfx"
 
-    caption_font: str = ""
     caption_font_size: int = 48
-    caption_font_color: str = "white"
-    caption_stroke_color: str = "black"
-    caption_stroke_width: int = 3
 
     upload_privacy: str = "public"
     upload_category: str = "22"
@@ -67,7 +63,6 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
 
     image_provider: str = "auto"
-    image_provider_fallback: bool = True
     media_prefer_videos: bool = True
 
     quality: str = "standard"

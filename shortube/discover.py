@@ -7,7 +7,7 @@ import feedparser
 import requests
 
 from shortube.config import get_settings
-from shortube.llm import create_llm
+from shortube.llm import LLMError, create_llm
 from shortube.types import TrendIdea
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ def refine_topics(ideas: list[TrendIdea], niche: str, max_results: int) -> list[
                 ))
         logger.info("LLM refined %d topics for niche '%s'", len(refined), niche)
         return refined[:max_results]
-    except Exception as e:
+    except (LLMError, ValueError, TypeError, OSError) as e:
         logger.warning("LLM topic refinement failed (%s) — using raw titles", e)
         return ideas[:max_results]
 
@@ -126,7 +126,7 @@ def _hacker_news() -> list[TrendIdea]:
             for item in resp.json().get("hits", [])
             if item.get("title")
         ]
-    except Exception as e:
+    except (requests.RequestException, KeyError, TypeError) as e:
         logger.warning("Hacker News failed: %s", e)
         return []
 
@@ -152,7 +152,7 @@ def _rss_feeds() -> list[TrendIdea]:
                         score=3.0,
                         url=entry.get("link"),
                     ))
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.warning("RSS feed %s failed: %s", url, e)
     return ideas
 
@@ -192,7 +192,7 @@ def _youtube_search(niche: str = "") -> list[TrendIdea]:
             for item in resp.json().get("items", [])
             if item.get("id", {}).get("videoId")
         ]
-    except Exception as e:
+    except (requests.RequestException, KeyError, TypeError) as e:
         logger.warning("YouTube search failed: %s", e)
         return []
 
@@ -212,7 +212,7 @@ def discover(niche: str = "", max_results: int = 10) -> list[TrendIdea]:
             ideas = fetcher(niche) if name == "youtube" else fetcher()
             all_ideas.extend(ideas)
             logger.info("Got %d ideas from %s", len(ideas), name)
-        except Exception as e:
+        except (requests.RequestException, OSError, KeyError, TypeError, ValueError) as e:
             logger.warning("Source '%s' failed: %s", name, e)
 
     # Deduplicate by title similarity

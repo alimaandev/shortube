@@ -7,9 +7,10 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from shortube.assemble import assemble_video
+from shortube.assemble import AssemblyError, assemble_video
 from shortube.config import get_settings
 from shortube.db import Database
+from shortube.remotion_bridge import RemotionError
 from shortube.script import generate_script
 from shortube.storyboard import generate_storyboard
 from shortube.types import Script, Storyboard
@@ -34,9 +35,9 @@ class PipelineCancelled(Exception):
 def _check_dependencies() -> None:
     missing: list[str] = []
     try:
-        from shortube.remotion_bridge import _find_npx
+        from shortube.remotion_bridge import RemotionError, _find_npx
         _find_npx()
-    except Exception as e:
+    except (RemotionError, OSError) as e:
         missing.append(str(e))
 
     cfg = get_settings()
@@ -185,7 +186,7 @@ def run_pipeline(
                 assemble_video(storyboard, voice_path, video_path)
                 last_error = None
                 break
-            except Exception as e:
+            except (AssemblyError, RemotionError, OSError) as e:
                 last_error = e
                 logger.warning(
                     "Assembly attempt %d failed: %s", attempt, e
@@ -212,7 +213,7 @@ def run_pipeline(
     try:
         generate_thumbnail(script.title, thumb_path, subtitle=script.hook)
         result["thumbnail"] = thumb_path
-    except Exception as e:
+    except OSError as e:
         logger.warning("Thumbnail failed: %s", e)
 
     # Upload

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from shortube.config import get_settings
 from shortube.llm import LLMError, create_llm
@@ -254,7 +254,7 @@ def generate_script(topic: str) -> Script:
         except LLMError as e:
             last_error = str(e)
             logger.warning("Script LLM attempt %d failed: %s", attempt + 1, e)
-        except Exception as e:
+        except (ValidationError, TypeError, ValueError) as e:
             last_error = str(e)
             logger.warning("Script attempt %d failed: %s", attempt + 1, e)
 

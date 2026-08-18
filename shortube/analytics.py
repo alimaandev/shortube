@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import pickle
 from datetime import UTC, datetime
 from typing import Any
 
+from googleapiclient.errors import HttpError
+
 from shortube.db import Database
-from shortube.upload import _get_service
+from shortube.upload import UploadError, _get_service
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ def fetch_video_stats(youtube_url: str) -> dict[str, Any]:
                           .get("high", {}).get("url", "")),
             "fetched_at": datetime.now(UTC).isoformat(),
         }
-    except Exception as e:
+    except (UploadError, OSError, ValueError, pickle.PickleError, HttpError) as e:
         logger.warning("Failed to fetch stats for %s: %s", youtube_url, e)
         return {}
 

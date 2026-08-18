@@ -275,7 +275,7 @@ All settings live in the desktop app (Settings tab) or `.env`. Most work with ei
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `IMAGE_PROVIDER` | `auto` | `auto`, `pexels`, `pixabay`, or `pollinations` |
-| `IMAGE_PROVIDER_FALLBACK` | `true` | Allow fallback providers |
+| `MEDIA_PREFER_VIDEOS` | `true` | Prefer video clips over images |
 | `MEDIA_PREFER_VIDEOS` | `true` | Prefer stock videos over images |
 | `PEXELS_API_KEY` / `PIXABAY_API_KEY` | — | Stock media keys (optional) |
 | `BACKGROUND_MUSIC_PATH` | — | Path to a music loop (optional) |

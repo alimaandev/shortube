@@ -45,7 +45,6 @@ KEY_MAP: dict[str, str] = {
     "openrouter_api_key": "OPENROUTER_API_KEY",
     "tags_default": "TAGS_DEFAULT",
     "image_provider": "IMAGE_PROVIDER",
-    "image_provider_fallback": "IMAGE_PROVIDER_FALLBACK",
     "media_prefer_videos": "MEDIA_PREFER_VIDEOS",
     "quality": "QUALITY",
     "remotion_concurrency": "REMOTION_CONCURRENCY",

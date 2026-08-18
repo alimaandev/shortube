@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -298,7 +299,7 @@ class PixabayVideoProvider(MediaProvider):
                             "type": "video",
                             "provider": "pixabay",
                             "duration": hit.get("duration"),
-                            "thumbnail": (hit.get("pageURL") or ""),
+                            "thumbnail": (v.get("thumbnail") or ""),
                         })
                         break
             logger.info("Pixabay videos: found %d for '%s'", len(results), query[:40])
@@ -385,6 +386,16 @@ class PollinationsProvider(MediaProvider):
 # ── Fallback: Text-on-Gradient Image Generator ─────────────────────────
 
 
+def _load_font(candidates: list[str], size: int):
+    """Load the first available TrueType font, falling back to the default."""
+    for name in candidates:
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
 def _generate_fallback_image(
     text: str,
     output_dir: Path,
@@ -392,23 +403,21 @@ def _generate_fallback_image(
     width: int = 1080,
     height: int = 1920,
 ) -> str:
-    img = Image.new("RGB", (width, height))
-    for y in range(height):
-        r = int(20 + (y / height) * 30)
-        g = int(20 + (y / height) * 50)
-        b = int(40 + (y / height) * 30)
-        for x in range(width):
-            img.putpixel((x, y), (r, g, b))
+    # Vertical gradient built from a resized 8-bit ramp (C-backed, instant
+    # for 1080x1920) instead of a per-pixel putpixel loop.
+    ramp = Image.linear_gradient("L").resize(
+        (width, height), getattr(Image, "Resampling", Image).NEAREST
+    )
+    r = ramp.point(lambda v: 20 + v * 30 // 255)
+    g = ramp.point(lambda v: 20 + v * 50 // 255)
+    b = ramp.point(lambda v: 40 + v * 30 // 255)
+    img = Image.merge("RGB", (r, g, b))
 
     draw = ImageDraw.Draw(img)
     font_size = 48
-    try:
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except OSError:
-        try:
-            font = ImageFont.truetype("C:\\Windows\\Fonts\\segoeui.ttf", font_size)
-        except OSError:
-            font = ImageFont.load_default()
+    font = _load_font(
+        ["arial.ttf", "segoeui.ttf", "DejaVuSans.ttf"], font_size
+    )
 
     max_w = width - 120
     lines: list[str] = []
@@ -502,7 +511,8 @@ class DownloadManager:
         )
 
     def _local_path(self, url: str, ext: str = ".jpg") -> Path:
-        h = f"{abs(hash(url)):x}"
+        # Deterministic across processes (hash() is salted per run).
+        h = hashlib.sha256(url.encode()).hexdigest()[:16]
         return self._cache_dir / f"{h}{ext}"
 
     def _validate_file(self, path: Path, media_type: str) -> bool:
@@ -516,11 +526,10 @@ class DownloadManager:
                 logger.warning("Image exceeds size cap (%d bytes): %s", MAX_IMAGE_BYTES, path.name)
                 return False
             try:
-                from PIL import Image
                 with Image.open(path) as img:
                     img.verify()
                 return True
-            except Exception:
+            except OSError:
                 return False
         if media_type == "video":
             return 5000 < size <= MAX_VIDEO_BYTES
@@ -532,7 +541,6 @@ class DownloadManager:
         Returns the final on-disk path (unchanged unless scaled).
         """
         try:
-            from PIL import Image
             with Image.open(path) as img:
                 w, h = img.size
                 if w <= MAX_IMAGE_DIMENSION and h <= MAX_IMAGE_DIMENSION:
@@ -546,7 +554,7 @@ class DownloadManager:
                 "Downscaled image %s to fit %dx%d", path.name,
                 MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION,
             )
-        except Exception as e:
+        except OSError as e:
             logger.warning("Image downscale failed for %s: %s", path.name, e)
         return path
 
@@ -678,7 +686,7 @@ class StoryboardGenerator:
             for provider_cls in provider_chain:
                 try:
                     results = provider_cls.search(query, count=MIN_MEDIA_COUNT)
-                except Exception as e:
+                except (requests.RequestException, KeyError, TypeError, ValueError) as e:
                     logger.warning("Provider %s failed: %s", type(provider_cls).__name__, e)
                     continue
 

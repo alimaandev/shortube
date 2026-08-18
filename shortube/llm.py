@@ -9,6 +9,13 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Single source of truth for the default model per provider.
+PROVIDER_DEFAULT_MODELS: dict[str, str] = {
+    "groq": "llama-3.3-70b-versatile",
+    "openrouter": "meta-llama/llama-4-scout:free",
+    "ollama": "qwen2.5:7b",
+}
+
 
 class LLMError(Exception):
     pass
@@ -22,7 +29,7 @@ def retry(max_attempts: int = 3, delay: float = 1.0):
             for attempt in range(max_attempts):
                 try:
                     return fn(*args, **kwargs)
-                except Exception as e:
+                except LLMError as e:
                     last = e
                     if attempt < max_attempts - 1:
                         time.sleep(delay * (2 ** attempt))

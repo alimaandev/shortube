@@ -81,7 +81,7 @@ def load_template(name: str = "") -> dict[str, Any]:
                     logger.warning("Template %s is not an object", candidate)
                     continue
                 return _merge(DEFAULTS, data)
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError) as exc:
             logger.warning("Failed to load template %s: %s", candidate, exc)
 
     logger.warning("Template '%s' not found — using built-in defaults", resolved)
