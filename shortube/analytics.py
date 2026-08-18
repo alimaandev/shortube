@@ -62,13 +62,13 @@ def refresh_all_analytics() -> list[dict[str, Any]]:
     videos = db.get_recent_videos(limit=100)
     results: list[dict[str, Any]] = []
     for v in videos:
-        youtube_url = v.get("youtube_url")
+        youtube_url = v.youtube_url
         if not youtube_url:
             continue
         stats = fetch_video_stats(youtube_url)
         if stats:
-            stats["video_db_id"] = v["id"]
-            stats["topic_title"] = v.get("topic_title", "")
+            stats["video_db_id"] = v.id
+            stats["topic_title"] = v.topic_title
             results.append(stats)
     logger.info("Refreshed analytics for %d videos", len(results))
     return results

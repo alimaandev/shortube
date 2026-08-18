@@ -105,11 +105,11 @@ def run_pipeline(
 
     if video:
         try:
-            cached_script = Script.from_dict(json.loads(video["script_json"]))
+            cached_script = Script.from_dict(json.loads(video.script_json))
             cached_storyboard = Storyboard.from_dict(
-                json.loads(video["storyboard_json"])
+                json.loads(video.storyboard_json)
             )
-            cached_voice = video.get("voiceover_path") or ""
+            cached_voice = video.voiceover_path or ""
             if (
                 cached_script.full_text
                 and cached_storyboard.scenes
@@ -169,12 +169,12 @@ def run_pipeline(
 
     # Stage 4: Assembly
     video_path = str(out / "final.mp4")
-    cached_video_path = video.get("video_path") if video else None
+    cached_video_path = video.video_path if video else None
     if (
         resume_ready
         and cached_video_path
         and Path(cached_video_path).exists()
-        and video.get("status") in ("assembled", "uploaded")
+        and video.status in ("assembled", "uploaded")
     ):
         video_path = cached_video_path
         logger.info("Stage 4 already done, skipping")

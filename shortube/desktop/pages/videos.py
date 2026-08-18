@@ -15,16 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from shortube.db import Database
-
-STATUS_COLORS = {
-    "uploaded": "#4caf50",
-    "assembled": "#4caf50",
-    "done": "#4caf50",
-    "failed": "#ef5350",
-    "cancelled": "#ff9800",
-    "pending": "#2196f3",
-}
+from shortube.db import Database, VideoRow
 
 
 class VideosPage(QWidget):
@@ -32,7 +23,7 @@ class VideosPage(QWidget):
         super().__init__()
         self.window = window
         self.db = Database()
-        self._videos: list[dict] = []
+        self._videos: list[VideoRow] = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 20)
@@ -88,15 +79,15 @@ class VideosPage(QWidget):
         self._videos = self.db.get_recent_videos(limit=50)
         self.table.setRowCount(len(self._videos))
         for i, v in enumerate(self._videos):
-            topic_item = QTableWidgetItem(v.get("topic_title") or "")
-            topic_item.setToolTip(v.get("topic_title") or "")
-            status_item = QTableWidgetItem(v.get("status") or "")
+            topic_item = QTableWidgetItem(v.topic_title or "")
+            topic_item.setToolTip(v.topic_title or "")
+            status_item = QTableWidgetItem(v.status or "")
             status_item.setForeground(
                 Qt.GlobalColor.white
             )
-            privacy_item = QTableWidgetItem(v.get("privacy") or "")
-            created_item = QTableWidgetItem((v.get("created_at") or "")[:19])
-            link_item = QTableWidgetItem(v.get("youtube_url") or "")
+            privacy_item = QTableWidgetItem(v.privacy or "")
+            created_item = QTableWidgetItem((v.created_at or "")[:19])
+            link_item = QTableWidgetItem(v.youtube_url or "")
             self.table.setItem(i, 0, topic_item)
             self.table.setItem(i, 1, status_item)
             self.table.setItem(i, 2, privacy_item)
@@ -104,7 +95,7 @@ class VideosPage(QWidget):
             self.table.setItem(i, 4, link_item)
         self.table.resizeRowsToContents()
 
-    def _selected(self) -> dict | None:
+    def _selected(self) -> VideoRow | None:
         row = self.table.currentRow()
         if 0 <= row < len(self._videos):
             return self._videos[row]
@@ -115,7 +106,7 @@ class VideosPage(QWidget):
         if not video:
             self.preview_label.setText("Select a video to preview")
             return
-        thumb = video.get("thumbnail_path") or ""
+        thumb = video.thumbnail_path or ""
         if thumb and Path(thumb).exists():
             pixmap = QPixmap(str(thumb))
             if not pixmap.isNull():
@@ -132,7 +123,7 @@ class VideosPage(QWidget):
         video = self._selected()
         if not video:
             return
-        path = video.get("video_path") or ""
+        path = video.video_path or ""
         if path and Path(path).exists():
             os.startfile(path)
         else:
@@ -142,7 +133,7 @@ class VideosPage(QWidget):
         video = self._selected()
         if not video:
             return
-        url = video.get("youtube_url") or ""
+        url = video.youtube_url or ""
         if url:
             QDesktopServices.openUrl(QUrl(url))
         else:
@@ -152,5 +143,5 @@ class VideosPage(QWidget):
         video = self._selected()
         if not video:
             return
-        if self.window.queue_retry(video["id"]):
+        if self.window.queue_retry(video.id):
             self.window.navigate("dashboard")
