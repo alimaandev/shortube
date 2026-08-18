@@ -9,9 +9,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from shortube.config import get_settings
+from shortube.storyboard import _load_font
 from shortube.types import Script
 
 logger = logging.getLogger(__name__)
@@ -152,19 +153,15 @@ def generate_thumbnail(
         try:
             bg = Image.open(bg_path).resize((width, height))
             img.paste(bg, (0, 0))
-        except Exception as e:
+        except OSError as e:
             logger.warning("Failed to load thumbnail background: %s", e)
 
-    try:
-        title_font = ImageFont.truetype(
-            "C:/Windows/Fonts/arialbd.ttf", 56
-        )
-        sub_font = ImageFont.truetype(
-            "C:/Windows/Fonts/arial.ttf", 32
-        )
-    except Exception:
-        title_font = ImageFont.load_default()
-        sub_font = ImageFont.load_default()
+    title_font = _load_font(
+        ["arialbd.ttf", "segoeuib.ttf", "DejaVuSans-Bold.ttf"], 56
+    )
+    sub_font = _load_font(
+        ["arial.ttf", "segoeui.ttf", "DejaVuSans.ttf"], 32
+    )
 
     lines = []
     words = title.split()

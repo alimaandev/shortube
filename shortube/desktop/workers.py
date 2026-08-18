@@ -187,7 +187,7 @@ def run_in_thread(
         def run(self) -> None:
             try:
                 self.done.emit(fn())
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — thread boundary: any failure must surface via error signal
                 logger.error("Background task failed: %s", e)
                 self.error.emit(str(e))
 

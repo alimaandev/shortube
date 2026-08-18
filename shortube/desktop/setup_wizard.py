@@ -14,16 +14,12 @@ from PyQt6.QtWidgets import (
 
 from shortube.config import get_settings
 from shortube.desktop.workers import run_in_thread
+from shortube.llm import PROVIDER_DEFAULT_MODELS
+from shortube.quality import DEFAULT_QUALITY, QUALITY_PRESETS
 from shortube.settings_env import save_settings
 from shortube.template_loader import DEFAULTS
 
 logger = logging.getLogger(__name__)
-
-PROVIDER_DEFAULT_MODELS = {
-    "groq": "llama-3.3-70b-versatile",
-    "openrouter": "meta-llama/llama-4-scout:free",
-    "ollama": "qwen2.5:7b",
-}
 
 
 def needs_setup() -> bool:
@@ -132,10 +128,11 @@ class _LookPage(QWizardPage):
         )
         form.addRow("Template", self.template_combo)
         self.quality_combo = QComboBox()
-        self.quality_combo.addItem("Fast (draft, quick renders)", "fast")
-        self.quality_combo.addItem("Standard (balanced)", "standard")
-        self.quality_combo.addItem("Pro (best quality)", "pro")
-        self.quality_combo.setCurrentIndex(1)
+        for key, preset in QUALITY_PRESETS.items():
+            self.quality_combo.addItem(preset.label, key)
+        self.quality_combo.setCurrentIndex(
+            max(0, list(QUALITY_PRESETS).index(DEFAULT_QUALITY))
+        )
         form.addRow("Quality preset", self.quality_combo)
 
     def values(self) -> dict:
@@ -169,5 +166,5 @@ class SetupWizard(QWizard):
             payload["ollama_base_url"] = self.llm_page.url_input.text().strip()
         try:
             save_settings(payload)
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.warning("Setup wizard save failed: %s", e)

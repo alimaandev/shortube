@@ -21,7 +21,7 @@ exclude = ["remotion", ".opencode"]
 # refactor removes every blind except and then this rule gets enabled.
 # PLW0602 / ASYNC230 are deferred to the scheduler (Phase 3) and
 # voice (Phase 4) rewrites respectively.
-select = ["E", "F", "I", "UP", "SIM", "B", "DTZ", "PIE", "PLW1510", "S110", "F841", "PERF402", "ASYNC230"]
+select = ["E", "F", "I", "UP", "SIM", "B", "DTZ", "PIE", "PLW1510", "S110", "F841", "PERF402", "ASYNC230", "BLE001"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]

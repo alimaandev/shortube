@@ -116,7 +116,7 @@ def _run_scheduled_job():
         logger.info("No undiscovered topics found for scheduled run")
     except PipelineError as e:
         logger.error("Scheduled pipeline failed: %s", e)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — APScheduler job boundary: an uncaught job error kills the scheduler loop
         logger.error("Scheduled job error: %s", e)
 
 

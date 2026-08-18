@@ -8,6 +8,7 @@ and the audio normalization pass.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 
@@ -30,7 +31,7 @@ QUALITY_PRESETS: dict[str, QualityPreset] = {
         label="Standard (balanced quality/speed)",
     ),
     "pro": QualityPreset(
-        fps=30, concurrency=max(2, (__import__("os").cpu_count() or 4) // 2),
+        fps=30, concurrency=max(2, (os.cpu_count() or 4) // 2),
         crf=14, audio_bitrate="256k",
         label="Pro (best quality, slower renders)",
     ),

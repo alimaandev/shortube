@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from shortube.config import get_settings
 from shortube.template_loader import load_template
 
@@ -17,7 +19,7 @@ def accent_color() -> str:
     try:
         data = load_template(get_settings().template)
         return str(data.get("accent", DEFAULT_ACCENT))
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return DEFAULT_ACCENT
 
 

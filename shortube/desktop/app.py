@@ -47,10 +47,10 @@ def main() -> int:
 def _missing_dependencies() -> list[str]:
     missing: list[str] = []
     try:
-        from shortube.remotion_bridge import _find_npx
+        from shortube.remotion_bridge import RemotionError, _find_npx
 
         _find_npx()
-    except Exception as e:
+    except (RemotionError, OSError) as e:
         missing.append(str(e))
     from pathlib import Path
 

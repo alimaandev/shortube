@@ -92,5 +92,5 @@ class SchedulePage(QWidget):
             self._refresh()
             self.window.refresh_scheduler_label()
             self.window.notify("Schedule saved")
-        except Exception as e:
+        except (OSError, ValueError) as e:
             self.window.notify(f"Failed to save schedule: {e}", 8000)

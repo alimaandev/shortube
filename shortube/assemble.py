@@ -24,7 +24,7 @@ def _load_timestamps(timestamp_path: str) -> list[dict]:
     try:
         data = json.loads(ts_file.read_text(encoding="utf-8"))
         return data.get("timestamps", [])
-    except Exception:
+    except (json.JSONDecodeError, OSError):
         return []
 
 
@@ -62,7 +62,7 @@ def _normalize_loudness(output_path: str) -> None:
                 result.returncode,
                 (result.stderr or "")[-500:],
             )
-    except Exception as e:
+    except (subprocess.TimeoutExpired, OSError) as e:
         logger.warning("Loudness normalization skipped: %s", e)
     finally:
         if norm.exists():

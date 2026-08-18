@@ -20,15 +20,10 @@ from PyQt6.QtWidgets import (
 
 from shortube.config import get_settings
 from shortube.desktop.workers import run_in_thread
+from shortube.llm import PROVIDER_DEFAULT_MODELS
 from shortube.quality import QUALITY_PRESETS
 from shortube.settings_env import save_settings
 from shortube.template_loader import DEFAULTS
-
-PROVIDER_DEFAULT_MODELS = {
-    "groq": "llama-3.3-70b-versatile",
-    "openrouter": "meta-llama/llama-4-scout:free",
-    "ollama": "qwen2.5:7b",
-}
 
 
 def _label_row(layout: QFormLayout, label: str, widget: QWidget, hint: str = "") -> None:
@@ -435,5 +430,5 @@ class SettingsPage(QWidget):
             save_settings(payload)
             self.window.notify("Settings saved")
             self.window.apply_theme()
-        except Exception as e:
+        except (OSError, ValueError) as e:
             self.window.notify(f"Failed to save settings: {e}", 8000)

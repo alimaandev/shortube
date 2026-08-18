@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import shortube.pipeline as pl
+from shortube.assemble import AssemblyError
 from shortube.types import Scene, Script, Storyboard
 
 
@@ -50,7 +51,7 @@ def test_assembly_retries_then_succeeds(monkeypatch, settings, tmp_path):
     def fake_assemble(storyboard, voice_path, video_path):
         calls["n"] += 1
         if calls["n"] == 1:
-            raise RuntimeError("render boom")
+            raise AssemblyError("render boom")
         Path(video_path).write_bytes(b"x" * 20_000)
 
     _mock_pipeline(monkeypatch, tmp_path, fake_assemble)
@@ -64,7 +65,7 @@ def test_assembly_total_failure_raises(monkeypatch, settings, tmp_path):
 
     def always_fail(storyboard, voice_path, video_path):
         calls["n"] += 1
-        raise RuntimeError("always boom")
+        raise AssemblyError("always boom")
 
     _mock_pipeline(monkeypatch, tmp_path, always_fail)
     with pytest.raises(pl.PipelineError, match="failed after retry"):
