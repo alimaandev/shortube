@@ -202,67 +202,101 @@ def _to_script(validated: ScriptOutput, topic: str) -> Script:
     )
 
 
-def generate_script(topic: str) -> Script:
-    cfg = get_settings()
-    if cfg.llm_provider == "ollama":
-        api_key = ""
-    else:
-        api_key = cfg.groq_api_key if cfg.llm_provider == "groq" else cfg.openrouter_api_key
-    llm = create_llm(
-        provider=cfg.llm_provider,
-        api_key=api_key,
-        model=cfg.llm_model,
-    )
-    base_prompt = _PROMPT.format(niche=cfg.niche, topic=topic)
-    hint = ""
-    last_error = ""
+class ScriptWriter:
+    """Generates validated scripts via the LLM with hint-based retries.
 
-    for attempt in range(3):
-        try:
-            prompt = base_prompt
-            if hint:
-                prompt += (
-                    "\n\nPrevious attempt was rejected. Fix ALL of these issues:\n" + hint
+    Each rejected attempt feeds the validation errors back to the model
+    as fix instructions; up to 3 attempts are made per topic.
+    """
+
+    def __init__(self, llm=None) -> None:
+        self._llm = llm
+
+    def _get_llm(self):
+        if self._llm is None:
+            cfg = get_settings()
+            if cfg.llm_provider == "ollama":
+                api_key = ""
+            else:
+                api_key = (
+                    cfg.groq_api_key
+                    if cfg.llm_provider == "groq"
+                    else cfg.openrouter_api_key
                 )
-            raw = llm.generate_json(
-                "You are a YouTube Shorts script writer. Output valid JSON only.",
-                prompt,
-                temperature=cfg.llm_temperature,
-                max_tokens=1000,
+            self._llm = create_llm(
+                provider=cfg.llm_provider,
+                api_key=api_key,
+                model=cfg.llm_model,
             )
-            validated = ScriptOutput(**raw)
-            validated.hook = _clean_text(validated.hook)
-            validated.points = [_clean_text(p) for p in validated.points]
-            validated.cta = _clean_text(validated.cta)
-            validated.full_text = _clean_text(validated.full_text)
-            validated.title = _clean_text(validated.title)
-            validated.keywords = [k.strip() for k in validated.keywords if k.strip()]
-            validated.tags = [t.lstrip("#").strip() for t in validated.tags if t.strip()]
+        return self._llm
 
-            errors = validate_script_output(validated, topic)
-            if not errors:
-                density = score_keyword_density(validated.keywords, validated.full_text)
-                logger.info(
-                    "Script generated for %s (density %.0f%%, ~%d words)",
-                    topic[:60], density * 100,
-                    len(re.findall(r"\S+", validated.full_text)),
+    def generate(self, topic: str) -> Script:
+        cfg = get_settings()
+        llm = self._get_llm()
+        base_prompt = _PROMPT.format(niche=cfg.niche, topic=topic)
+        hint = ""
+        last_error = ""
+
+        for attempt in range(3):
+            try:
+                prompt = base_prompt
+                if hint:
+                    prompt += (
+                        "\n\nPrevious attempt was rejected. Fix ALL of these issues:\n"
+                        + hint
+                    )
+                raw = llm.generate_json(
+                    "You are a YouTube Shorts script writer. Output valid JSON only.",
+                    prompt,
+                    temperature=cfg.llm_temperature,
+                    max_tokens=1000,
                 )
-                return _to_script(validated, topic)
+                validated = ScriptOutput(**raw)
+                validated.hook = _clean_text(validated.hook)
+                validated.points = [_clean_text(p) for p in validated.points]
+                validated.cta = _clean_text(validated.cta)
+                validated.full_text = _clean_text(validated.full_text)
+                validated.title = _clean_text(validated.title)
+                validated.keywords = [
+                    k.strip() for k in validated.keywords if k.strip()
+                ]
+                validated.tags = [
+                    t.lstrip("#").strip() for t in validated.tags if t.strip()
+                ]
 
-            hint = "\n".join(f"- {e}" for e in errors)
-            logger.warning("Script attempt %d rejected: %s", attempt + 1, hint[:400])
-        except LLMError as e:
-            last_error = str(e)
-            logger.warning("Script LLM attempt %d failed: %s", attempt + 1, e)
-        except (ValidationError, TypeError, ValueError) as e:
-            last_error = str(e)
-            logger.warning("Script attempt %d failed: %s", attempt + 1, e)
+                errors = validate_script_output(validated, topic)
+                if not errors:
+                    density = score_keyword_density(
+                        validated.keywords, validated.full_text
+                    )
+                    logger.info(
+                        "Script generated for %s (density %.0f%%, ~%d words)",
+                        topic[:60], density * 100,
+                        len(re.findall(r"\S+", validated.full_text)),
+                    )
+                    return _to_script(validated, topic)
 
-    detail = hint or last_error
-    if hint:
+                hint = "\n".join(f"- {e}" for e in errors)
+                logger.warning(
+                    "Script attempt %d rejected: %s", attempt + 1, hint[:400]
+                )
+            except LLMError as e:
+                last_error = str(e)
+                logger.warning("Script LLM attempt %d failed: %s", attempt + 1, e)
+            except (ValidationError, TypeError, ValueError) as e:
+                last_error = str(e)
+                logger.warning("Script attempt %d failed: %s", attempt + 1, e)
+
+        detail = hint or last_error
+        if hint:
+            raise ScriptError(
+                f"Failed to generate a valid script after 3 attempts: {hint}"
+            )
         raise ScriptError(
-            f"Failed to generate a valid script after 3 attempts: {hint}"
+            f"Script generation failed: {detail or 'LLM returned no usable response'}"
         )
-    raise ScriptError(
-        f"Script generation failed: {detail or 'LLM returned no usable response'}"
-    )
+
+
+def generate_script(topic: str) -> Script:
+    """Convenience wrapper so callers can generate without a writer instance."""
+    return ScriptWriter().generate(topic)
