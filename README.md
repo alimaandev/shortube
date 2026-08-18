@@ -35,6 +35,8 @@ Discover trends -> Write scripts -> Generate voiceovers -> Assemble videos (via 
 ### YouTube Upload & SEO
 - OAuth 2.0 with token persistence (browser flow)
 - SEO descriptions (hook + bullet points + hashtags), branded thumbnail generation, scheduled publishing, playlist assignment, multi-channel selection
+- **Tags & keywords** — the LLM generates 3-8 keywords and 4-12 YouTube tags per script (validated before upload); the description auto-appends the first 8 tags as `#hashtags` and tags are truncated at YouTube's 500-char limit
+- **Fallback tags** — if a script has no tags, `TAGS_DEFAULT` is used (`shorts, youtubeshorts` by default)
 
 ### CLI (power users)
 - `python -m shortube.main` — show trends
@@ -77,6 +79,7 @@ YOUTUBE_CLIENT_SECRETS=client_secrets.json
 UPLOAD_CHANNEL_ID=your_channel_id
 NICHE=general_facts
 QUALITY=standard
+TAGS_DEFAULT=shorts, youtubeshorts
 ```
 
 ## Quality Presets
@@ -149,23 +152,81 @@ python -m shortube.main auto
 
 ## Configuration Reference
 
+All settings are managed from the desktop app (Settings tab) or via `.env`. Most values can be set with either.
+
+### LLM & Discovery
+
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `LLM_PROVIDER` | `groq` | `groq`, `openrouter`, or `ollama` |
 | `LLM_MODEL` | `llama-3.3-70b-versatile` | Script model |
-| `DISCOVERY_MODEL` | (inherits LLM_MODEL) | Trend refinement model |
-| `QUALITY` | `standard` | `fast`, `standard`, or `pro` |
+| `DISCOVERY_MODEL` | (inherits `LLM_MODEL`) | Trend refinement model |
+| `LLM_TEMPERATURE` | `0.8` | Creativity (0.0 - 1.5) |
+| `LLM_MAX_TOKENS` | `800` | Max tokens per LLM call |
+| `GROQ_API_KEY` | -- | Groq key (required for groq) |
+| `OPENROUTER_API_KEY` | -- | OpenRouter key (required for openrouter) |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+
+### Content & Niche
+
+| Setting | Default | Description |
+|---------|---------|-------------|
 | `NICHE` | `general_facts` | Default content niche |
+| `TAGS_DEFAULT` | `shorts, youtubeshorts` | Fallback YouTube tags when a script has none |
+| `QUALITY` | `standard` | `fast`, `standard`, or `pro` (see presets above) |
+
+### Voiceover
+
+| Setting | Default | Description |
+|---------|---------|-------------|
 | `VOICE_NAME` | `en-US-AriaNeural` | edge-tts voice |
 | `VOICE_SPEED` | `1.15` | Playback speed |
-| `VIDEO_WIDTH` / `HEIGHT` | `1080` / `1920` | Canvas size (px) |
+| `VOICE_VOLUME` | `1.0` | Voiceover gain |
+
+### Video & Rendering
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `VIDEO_WIDTH` | `1080` | Canvas width (px) |
+| `VIDEO_HEIGHT` | `1920` | Canvas height (px) |
+| `VIDEO_FPS` | `30` | Baseline fps (presets may override) |
 | `BUMPER_DURATION` | `1.5` | Intro/outro bumper length (s) |
 | `TRANSITION_DURATION` | `0.3` | Scene transition length (s) |
 | `TEMPLATE` | `premium` | Visual template from `templates/*.json` |
 | `REMOTION_PROJECT_DIR` | `remotion` | Path to Remotion project |
-| `BACKGROUND_MUSIC_PATH` | -- | Path to music loop |
+| `REMOTION_CONCURRENCY` | `0` | Render threads (`0` = preset default) |
+| `CAPTION_FONT_SIZE` | `48` | Caption size (px) |
+| `CAPTION_FONT` | -- | Caption font family |
+| `CAPTION_FONT_COLOR` | `white` | Caption color |
+| `CAPTION_STROKE_COLOR` | `black` | Caption outline color |
+| `CAPTION_STROKE_WIDTH` | `3` | Caption outline width |
+
+### Media & Audio
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `IMAGE_PROVIDER` | `auto` | `auto`, `pexels`, `pixabay`, or `pollinations` |
+| `IMAGE_PROVIDER_FALLBACK` | `true` | Allow fallback providers |
+| `MEDIA_PREFER_VIDEOS` | `true` | Prefer stock videos over images |
+| `PEXELS_API_KEY` | -- | Pexels key (optional) |
+| `PIXABAY_API_KEY` | -- | Pixabay key (optional) |
+| `BACKGROUND_MUSIC_PATH` | -- | Path to a music loop (optional) |
+| `MUSIC_VOLUME` | `15.0` | Music level (0-100) |
+| `DUCK_THRESHOLD` | `6.0` | Music ducking intensity |
+| `SFX_ENABLED` | `true` | whoosh/pop/riser sound effects |
+| `SFX_DIR` | `resources/sfx` | SFX folder |
+
+### YouTube Upload
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `YOUTUBE_CLIENT_SECRETS` | `client_secrets.json` | OAuth client file |
 | `UPLOAD_PRIVACY` | `public` | `private`, `unlisted`, or `public` |
-| `UPLOAD_CHANNEL_ID` | -- | YouTube channel ID |
+| `UPLOAD_CATEGORY` | `22` | YouTube category ID |
+| `UPLOAD_LANGUAGE` | `en` | Video language |
+| `UPLOAD_CHANNEL_ID` | -- | Default upload channel |
+| `UPLOAD_PUBLISH_AT` | -- | ISO 8601 scheduled publish time |
+| `UPLOAD_PLAYLIST_ID` | -- | Auto-add videos to a playlist |
 
 ## License
 
