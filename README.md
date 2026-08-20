@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🎬 Shortube
+# 🎬 Shortube — AI-Powered YouTube Shorts Generator & Automation Studio
 
-### AI-Powered YouTube Shorts Studio — from topic to upload, fully automated
+### Turn ideas into published YouTube Shorts automatically: trend discovery → AI script → voiceover → video → upload
 
-**Discover trends → Write scripts → Generate voiceovers → Assemble videos → Upload to YouTube**
+**Shortube is a free, open-source YouTube Shorts automation tool** that takes a topic — or discovers trending topics for you — and produces a finished, published YouTube Short: an AI-written script, a natural text-to-speech voiceover, a Remotion-rendered video with karaoke captions, branded thumbnail, and an automatic upload to your YouTube channel.
 
 <br>
 
@@ -15,6 +15,7 @@
 ![YouTube](https://img.shields.io/badge/YouTube-API%20v3-FF0000?style=for-the-badge&logo=youtube&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-4C9F38?style=for-the-badge&logo=open-source-initiative&logoColor=white)
 ![CI](https://img.shields.io/github/actions/workflow/status/alimaandev/shortube/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=CI)
+![Issues](https://img.shields.io/github/issues/alimaandev/shortube?style=for-the-badge&logo=github&logoColor=white)
 
 **⭐ From idea to published Short in minutes — no video editing skills required.**
 
@@ -25,12 +26,15 @@
 ## 📚 Table of Contents
 
 - [✨ Features](#-features)
+- [🤔 Why Shortube?](#-why-shortube)
+- [⚙️ How It Works — the Automated Pipeline](#️-how-it-works--the-automated-pipeline)
 - [🚀 Quick Start](#-quick-start)
 - [🧠 LLM Providers](#-llm-providers)
 - [🎚️ Quality Presets](#️-quality-presets)
 - [🖼️ Visual Templates](#️-visual-templates)
 - [🏗️ Architecture](#️-architecture)
 - [⚙️ Configuration Reference](#️-configuration-reference)
+- [❓ FAQ](#-faq)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 
@@ -51,13 +55,13 @@
 | 🧙 | **Setup Wizard** | First-run guide: LLM provider → template → quality → YouTube connection |
 | 🛡️ | **Dependency Check** | Friendly startup warnings for missing Node.js / Remotion / ffmpeg |
 
-### ✍️ Script Generation
+### ✍️ AI Script Generation
 
 - 🧠 **LLM-powered scripts** — hook, body points, CTA, keywords, title and tags in a single validated prompt
 - ✅ **Strict quality gate** — hook/points/CTA length, keyword density ≥ 60%, spoken duration ≤ 55s, duplicate & junk detection with **up to 3 automatic retries**
 - 🔄 **Self-healing** — malformed LLM output is detected and retried with the exact fix hints
 
-### 🌐 Trend Discovery
+### 🌐 Trend Discovery (Find Shorts Topics That Get Views)
 
 - 📰 **3 sources** — Hacker News (Algolia), RSS (NYT, BBC, The Verge, Wired, Ars Technica), YouTube Search (Data API)
 - 🎯 **LLM refinement** — headlines converted into Shorts-optimized topics for your niche
@@ -78,6 +82,40 @@
 - 🏷️ **Tags & keywords** — the LLM generates 3–8 keywords and 4–12 tags per script; the description auto-appends the first 8 tags as `#hashtags`, truncated at YouTube's 500-char limit
 - 🪂 **Fallback tags** — `TAGS_DEFAULT` (`shorts, youtubeshorts`) when a script has none
 - 🖼️ **Branded thumbnails**, 📅 **scheduled publishing**, ▶️ **playlist assignment**, 👥 **multi-channel selection**
+
+---
+
+## 🤔 Why Shortube?
+
+| Problem | Shortube's answer |
+|---------|-------------------|
+| "I have no time to edit Shorts" | The whole production chain runs unattended — including auto-discovery and scheduled publishing |
+| "I don't know what topics to make" | Built-in trend discovery from 3 sources, LLM-refined for your niche |
+| "AI voiceovers sound robotic" | `edge-tts` neural voices with word-level timestamps for perfect caption sync |
+| "I can't edit video" | Remotion renders everything from a JSON template — colors, transitions, captions, bumpers, SFX |
+| "Manual upload is a chore" | OAuth 2.0 auto-upload with title, description, tags, thumbnail, and optional playlist |
+| "Other tools cost $30+/month" | 100% free and open source (MIT) — pay only for LLM API usage if you want |
+
+---
+
+## ⚙️ How It Works — the Automated Pipeline
+
+```
+┌────────┐   ┌────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
+│ Topic  │ → │ Script │ → │Voiceover │ → │Storyboard│ → │Assembly │
+└────────┘   │  (LLM) │   │ (edge-  │   │ (media + │   │(Remotion│
+             └────────┘   │   tts)  │   │  AI img) │   │  + SFX) │
+                          └──────────┘   └──────────┘   └────┬────┘
+                                                             ▼
+                       ┌──────────┐   ┌──────────┐   ┌──────────────┐
+                       │ YouTube  │ ← │Thumbnail │ ← │  loudnorm -14│
+                       │  Upload  │   │ (Pillow) │   │     LUFS     │
+                       └──────────┘   └──────────┘   └──────────────┘
+```
+
+Each stage is resumable: a cached script + storyboard + voiceover chain is
+reused all-or-nothing, so a failed render restarts from the last good piece —
+never from zero.
 
 ---
 
@@ -124,12 +162,12 @@ python -m shortube.main auto           # Auto-discover, generate, upload
 
 ## 🧠 LLM Providers
 
-Shortube works with **any** of these — switch anytime in Settings → LLM:
+Shortube works with **any** OpenAI-compatible LLM provider — switch anytime in Settings → LLM:
 
 | Provider | Setup | Cost |
 |----------|-------|------|
 | ⚡ **Groq** *(default)* | `GROQ_API_KEY` | Fast & cheap |
-| 🌐 **OpenRouter** | `OPENROUTER_API_KEY` | Many models |
+| 🌐 **OpenRouter** | `OPENROUTER_API_KEY` | Many models (incl. free ones) |
 | 🦙 **Ollama** | local install, no key | **Free**, runs on your machine |
 
 ```env
@@ -207,21 +245,6 @@ remotion/                      # Renderer (TypeScript)
 templates/                     # premium.json · clean.json
 ```
 
-### 🔄 Pipeline Flow
-
-```
-┌────────┐   ┌────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
-│ Topic  │ → │ Script │ → │Voiceover │ → │Storyboard│ → │Assembly │
-└────────┘   │  (LLM) │   │ (edge-  │   │ (media + │   │(Remotion│
-             └────────┘   │   tts)  │   │  AI img) │   │  + SFX) │
-                          └──────────┘   └──────────┘   └────┬────┘
-                                                             ▼
-                       ┌──────────┐   ┌──────────┐   ┌──────────────┐
-                       │ YouTube  │ ← │Thumbnail │ ← │  loudnorm -14│
-                       │  Upload  │   │ (Pillow) │   │     LUFS     │
-                       └──────────┘   └──────────┘   └──────────────┘
-```
-
 ---
 
 ## ⚙️ Configuration Reference
@@ -277,8 +300,7 @@ All settings live in the desktop app (Settings tab) or `.env`. Most work with ei
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `IMAGE_PROVIDER` | `auto` | `auto`, `pexels`, `pixabay`, or `pollinations` |
-| `MEDIA_PREFER_VIDEOS` | `true` | Prefer video clips over images |
-| `MEDIA_PREFER_VIDEOS` | `true` | Prefer stock videos over images |
+| `MEDIA_PREFER_VIDEOS` | `true` | Prefer stock video clips over still images |
 | `PEXELS_API_KEY` / `PIXABAY_API_KEY` | — | Stock media keys (optional) |
 | `BACKGROUND_MUSIC_PATH` | — | Path to a music loop (optional) |
 | `MUSIC_VOLUME` | `15.0` | Music level (0–100) |
@@ -297,6 +319,40 @@ All settings live in the desktop app (Settings tab) or `.env`. Most work with ei
 | `UPLOAD_CHANNEL_ID` | — | Default upload channel |
 | `UPLOAD_PUBLISH_AT` | — | ISO 8601 scheduled publish time |
 | `UPLOAD_PLAYLIST_ID` | — | Auto-add videos to a playlist |
+
+---
+
+## ❓ FAQ
+
+**Is Shortube free?**
+Yes. The software is MIT-licensed and free forever. You only pay for optional
+LLM API usage (Groq/OpenRouter) — or run it fully free with a local Ollama model.
+
+**Do I need to know how to edit video?**
+No. Remotion renders the entire Short from a JSON template — captions,
+transitions, bumpers, and sound effects are all automated.
+
+**Which LLM providers are supported?**
+Groq, OpenRouter, and Ollama — anything OpenAI-compatible. See the
+[LLM Providers](#-llm-providers) section.
+
+**Does it upload to YouTube automatically?**
+Yes, via YouTube Data API v3 with OAuth 2.0. You can also use `--dry-run` or
+the desktop app to generate without uploading, and `private`/`unlisted`
+privacy modes are supported.
+
+**Can I schedule Shorts to publish at a specific time?**
+Yes — both the built-in scheduler (generate on an interval with a daily cap)
+and YouTube's scheduled publishing (`UPLOAD_PUBLISH_AT`) are supported.
+
+**What happens if a render fails?**
+The pipeline is resumable: cached script + storyboard + voiceover are reused,
+and rendering restarts from the last good stage. See
+[How It Works](#️-how-it-works--the-automated-pipeline).
+
+**Does it work on Windows, macOS, and Linux?**
+The Python side is cross-platform. PyQt6 desktop app runs on all three; the
+Remotion renderer needs Node.js 18+.
 
 ---
 
@@ -323,7 +379,7 @@ Other gates: `python -m compileall -q shortube`, `npx tsc --noEmit` in `remotion
 
 ## 📄 License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — free to use, modify, and distribute, including commercially.
 
 ---
 
@@ -331,6 +387,8 @@ Other gates: `python -m compileall -q shortube`, `npx tsc --noEmit` in `remotion
 
 **Made with ❤️ by [alimaandev](https://github.com/alimaandev)**
 
-🎥 **Shortube** — turn ideas into viral Shorts, automatically.
+🎥 **Shortube** — the open-source **YouTube Shorts generator** that turns ideas into published Shorts, automatically.
+
+⭐ Star the repo if you find it useful — it helps more people discover it.
 
 </div>
